@@ -127,7 +127,7 @@
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbz92ffXWbAaMBPt3gYCSy0y11DEqWfPzoiVTUt6AUM7tQYT0QXhBJOSUmVCfnIdxPGSxQ/exec";
+const API = "https://script.google.com/macros/s/AKfycby1-Ue6QRuplJDMD8-KjrvcZlbJHCiFPw3ERMJtD42QITdcpNi2TeqImjP6YT2tV__ZFA/exec";
 const SHEET_TYPE = "fertirrigacao";
 
 const DIAS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
@@ -201,6 +201,9 @@ function showTab(t, btn){
 function atualizarDiaSemana(){
   const data = document.getElementById('sel-data').value;
   if(!data){ document.getElementById('dia-semana').textContent=''; return; }
+  const p = data.split('-');
+  const dataFmt = p[2]+'/'+p[1]+'/'+p[0];
+  document.getElementById('sel-data').dataset.fmt = dataFmt;
   const d = new Date(data+'T12:00:00');
   document.getElementById('dia-semana').textContent = '📅 '+DIAS[d.getDay()];
   atualizarBtn();
@@ -278,7 +281,9 @@ async function salvarAplicacao(){
       action: 'salvar',
       tipo: SHEET_TYPE,
       id: Date.now().toString(),
-      estufa, data, diaSemana,
+      estufa,
+      data: document.getElementById('sel-data').dataset.fmt || data,
+      diaSemana,
       produtos: prodStr,
       obs
     });
@@ -312,13 +317,17 @@ function setFiltro(e){ filtroEstufa=e; renderFiltros(); renderHistorico(); }
 
 function fmtData(d){
   if(!d) return '';
-  try {
-    const s = d.toString().trim();
-    if(s.includes('/')) return s;
-    if(s.includes('-')){ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
-    if(!isNaN(s) && s!==''){ const dt=new Date(Math.round((parseFloat(s)-25569)*86400*1000)); return dt.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}); }
-    return s;
-  } catch(e){ return d.toString(); }
+  const s = d.toString().trim();
+  // Already formatted as dd/mm/yyyy
+  if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  // Format yyyy-mm-dd
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){ const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+  // Google Sheets serial number
+  if(/^\d+(\.\d+)?$/.test(s)){ 
+    const dt=new Date(Math.round((parseFloat(s)-25569)*86400*1000)); 
+    return dt.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}); 
+  }
+  return s;
 }
 
 function renderHistorico(){
