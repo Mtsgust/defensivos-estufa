@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Defensivos">
+<title>Defensivos — Tomate Grape</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: #0f1a0f; color: #e8f5e9; font-family: Georgia, serif; min-height: 100vh; }
+  #header { background: linear-gradient(135deg,#1b3a1b,#0f1a0f); border-bottom: 2px solid #2d5a27; padding: 16px 16px 0; text-align: center; }
+  #header h1 { font-size: 17px; color: #a5d6a7; letter-spacing: 1px; }
+  #header p { font-size: 12px; color: #66bb6a; margin: 2px 0 12px; }
+  .tabs { display: flex; justify-content: center; }
+  .tab-btn { padding: 9px 16px; border: none; background: transparent; color: #558b2f; font-size: 12px; cursor: pointer; border-top: 2px solid transparent; border-radius: 6px 6px 0 0; font-family: Georgia, serif; }
+  .tab-btn.active { background: #0f1a0f; color: #a5d6a7; font-weight: bold; border-top-color: #66bb6a; }
+  .page { display: none; padding: 14px; max-width: 700px; margin: 0 auto; }
+  .page.active { display: block; }
+  input, select { background: #1b2e1b; border: 1px solid #2d5a27; border-radius: 6px; color: #e8f5e9; padding: 9px 12px; font-size: 14px; width: 100%; outline: none; font-family: Georgia, serif; }
+  input[type=date] { color-scheme: dark; }
+  input::placeholder { color: #3a5a3a; }
+  .card { background: #141f14; border-radius: 10px; border: 1px solid #2d5a27; padding: 12px; margin-bottom: 14px; }
+  .label { font-size: 11px; color: #81c784; font-family: monospace; letter-spacing: 1px; margin-bottom: 8px; }
+  .sublabel { font-size: 11px; color: #558b2f; margin-bottom: 4px; }
+  .prod-list { max-height: 260px; overflow-y: auto; border: 1px solid #1a2e1a; border-radius: 6px; }
+  .prod-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; border-bottom: 1px solid #1a2e1a; }
+  .prod-item:last-child { border-bottom: none; }
+  .prod-item.sel { background: #1e3a1e; }
+  .chk { width: 18px; height: 18px; border-radius: 4px; border: 2px solid #3a5a3a; background: transparent; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #0f1a0f; font-weight: bold; }
+  .chk.on { background: #66bb6a; border-color: #66bb6a; }
+  .prod-nome { font-size: 13px; color: #c8e6c9; flex: 1; }
+  .prod-item.sel .prod-nome { color: #a5d6a7; font-weight: bold; }
+  .prod-alvo { font-size: 11px; color: #558b2f; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; color: #e8f5e9; white-space: nowrap; }
+  .form-badge { font-size: 10px; padding: 1px 6px; border-radius: 4px; background: #1b2e1b; border: 1px solid #3a5a3a; color: #81c784; font-family: monospace; }
+  .row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .row > div { flex: 1; }
+  .btn { width: 100%; padding: 11px; border-radius: 8px; border: none; font-size: 14px; font-weight: bold; cursor: pointer; font-family: Georgia, serif; transition: background 0.3s; }
+  .btn-green { background: #2e7d32; color: #e8f5e9; }
+  .btn-green:disabled { background: #1a2e1a; color: #3a5a3a; cursor: not-allowed; }
+  .result-box { border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .result-incompat { background: #3b0f0f; border: 2px solid #e53935; }
+  .result-atencao { background: #3b2a00; border: 2px solid #ffb300; }
+  .result-ok { background: #0f2d14; border: 2px solid #2e7d32; }
+  .result-icon { font-size: 24px; }
+  .result-title { font-size: 15px; font-weight: bold; }
+  .result-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+  .par-item { border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  .par-incompat { background: #2a0a0a; border: 1px solid #c62828; }
+  .par-atencao { background: #2a1f00; border: 1px solid #f57f17; }
+  .par-label { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+  .par-nomes { font-size: 13px; margin-bottom: 3px; }
+  .par-motivo { font-size: 11px; color: #aaa; }
+  .ordem-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1a2e1a; }
+  .ordem-item:last-child { border-bottom: none; }
+  .ordem-num { width: 24px; height: 24px; border-radius: 50%; background: #2d5a27; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #a5d6a7; flex-shrink: 0; }
+  .dica { font-size: 11px; color: #558b2f; padding: 6px 10px; background: #0d1a0d; border-radius: 6px; margin-top: 8px; }
+  .filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filter-btn { padding: 4px 10px; border-radius: 16px; border: 1px solid #2d5a27; background: #1b2e1b; color: #81c784; font-size: 12px; cursor: pointer; font-family: Georgia, serif; }
+  .filter-btn.active { background: #2e7d32; color: #e8f5e9; border-color: #2e7d32; }
+  .reg-card { background: #141f14; border-radius: 8px; border: 1px solid #2d5a27; padding: 12px; margin-bottom: 8px; }
+  .reg-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+  .reg-estufa { font-weight: bold; color: #a5d6a7; font-size: 14px; }
+  .reg-info { font-size: 12px; color: #558b2f; }
+  .reg-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+  .reg-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #1b3a1b; border: 1px solid #2d5a27; color: #a5d6a7; }
+  .reg-obs { font-size: 12px; color: #6a8f6a; margin-top: 5px; font-style: italic; }
+  .del-btn { padding: 3px 10px; border-radius: 6px; border: 1px solid #3a3a1a; background: transparent; color: #7a6020; font-size: 12px; cursor: pointer; font-family: Georgia, serif; }
+  .del-confirm { display: flex; gap: 6px; }
+  .del-yes { padding: 3px 10px; border-radius: 6px; border: none; background: #c62828; color: #fff; font-size: 12px; cursor: pointer; }
+  .del-no { padding: 3px 10px; border-radius: 6px; border: 1px solid #3a5a3a; background: transparent; color: #81c784; font-size: 12px; cursor: pointer; }
+  .empty { text-align: center; padding: 24px; color: #3a5a3a; font-size: 13px; }
+  .aviso { font-size: 11px; color: #3a5a3a; text-align: center; margin-top: 14px; line-height: 1.6; }
+  .ok-box { border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; background: #0d1f0d; border: 1px solid #2e7d32; }
+  .ok-title { font-size: 11px; color: #66bb6a; margin-bottom: 4px; }
+  .ok-item { font-size: 12px; color: #a5d6a7; padding: 1px 0; }
+  .status-msg { text-align:center; font-size:12px; padding:6px 0; min-height:24px; }
+  .loading { text-align:center; color:#558b2f; font-size:13px; padding:20px; }
+  .spinner { display:inline-block; width:16px; height:16px; border:2px solid #2d5a27; border-top-color:#66bb6a; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:6px; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div style="font-size:28px;margin-bottom:2px">🌿</div>
+  <h1>Defensivos — Tomate Grape</h1>
+  <p>7 Estufas · Sistema no solo</p>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('compat',this)">🧪 Compatibilidade</button>
+    <button class="tab-btn" onclick="showTab('registro',this)">📋 Registro por Estufa</button>
+  </div>
+</div>
+
+<!-- ABA COMPATIBILIDADE -->
+<div id="tab-compat" class="page active">
+  <input type="text" id="busca-compat" placeholder="🔍 Buscar produto, praga ou grupo..." oninput="renderListaCompat()" style="margin-bottom:12px">
+  <div class="card" style="padding:0">
+    <div class="label" style="padding:8px 12px;border-bottom:1px solid #2d5a27">SELECIONE OS PRODUTOS DA CALDA (<span id="count-sel">0</span> selecionados)</div>
+    <div class="prod-list" id="lista-compat"></div>
+  </div>
+  <div id="resultado-compat"></div>
+  <div class="aviso">⚠️ Ferramenta de apoio — confirme com receituário agronômico e bula.<br>Quando em dúvida, faça o jar test antes de aplicar.</div>
+</div>
+
+<!-- ABA REGISTRO -->
+<div id="tab-registro" class="page">
+  <div class="card">
+    <div class="label">NOVA APLICAÇÃO</div>
+    <div class="row">
+      <div><div class="sublabel">Estufa</div>
+        <select id="sel-estufa">
+          <option>Estufa 1</option><option>Estufa 2</option><option>Estufa 3</option>
+          <option>Estufa 4</option><option>Estufa 5</option><option>Estufa 6</option><option>Estufa 7</option>
+        </select>
+      </div>
+      <div><div class="sublabel">Data</div><input type="date" id="sel-data" onchange="atualizarBtn()"></div>
+      <div><div class="sublabel">Volume (L)</div><input type="number" id="sel-volume" placeholder="ex: 200"></div>
+    </div>
+    <div class="sublabel">Produtos aplicados (<span id="count-reg">0</span> selecionados)</div>
+    <input type="text" id="busca-reg" placeholder="🔍 Buscar produto..." oninput="renderListaReg()" style="margin-bottom:6px">
+    <div class="prod-list" style="max-height:200px;margin-bottom:10px" id="lista-reg"></div>
+    <div class="sublabel">Observações (opcional)</div>
+    <input type="text" id="sel-obs" placeholder="ex: praga alvo, estágio, responsável..." style="margin-bottom:12px">
+    <button class="btn btn-green" id="btn-salvar" onclick="salvarAplicacao()" disabled>💾 Salvar Aplicação</button>
+    <div id="status-msg" class="status-msg"></div>
+  </div>
+
+  <div class="label">HISTÓRICO (<span id="count-hist">0</span> registros)</div>
+  <div class="filter-row" id="filtros-estufa"></div>
+  <div id="historico"><div class="loading"><span class="spinner"></span>Carregando registros...</div></div>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycby1-Ue6QRuplJDMD8-KjrvcZlbJHCiFPw3ERMJtD42QITdcpNi2TeqImjP6YT2tV__ZFA/exec";
+
+const PRODUTOS = [
+  {id:"metiltiofan",nome:"Metiltiofan",grupo:"Fungicida",form:"WP",alvo:"Oídio, Botrytis"},
+  {id:"orthocide",nome:"Orthocide",grupo:"Fungicida",form:"WP",alvo:"Alternaria, Antracnose"},
+  {id:"cercobin",nome:"Cercobin",grupo:"Fungicida",form:"WP",alvo:"Oídio, Botrytis"},
+  {id:"dithane",nome:"Dithane",grupo:"Fungicida",form:"WP",alvo:"Míldio, Alternaria"},
+  {id:"score",nome:"Score",grupo:"Fungicida",form:"EC",alvo:"Oídio, Septoria"},
+  {id:"amistartop",nome:"Amistar Top",grupo:"Fungicida",form:"SC",alvo:"Oídio, Alternaria, Septoria"},
+  {id:"influx",nome:"Influx",grupo:"Fungicida",form:"EC",alvo:"Oídio, Antracnose"},
+  {id:"verdavis",nome:"Verdavis",grupo:"Fungicida",form:"SC",alvo:"Oídio, Botrytis"},
+  {id:"trigard",nome:"Trigard",grupo:"Inseticida",form:"WP",alvo:"Mosca-minadora, Traça"},
+  {id:"abamectina",nome:"Abamectina",grupo:"Acaricida/Inset.",form:"EC",alvo:"Ácaro, Mosca-minadora"},
+  {id:"actara",nome:"Actara",grupo:"Inseticida",form:"WG",alvo:"Mosca-branca, Pulgão"},
+  {id:"ampligo",nome:"Ampligo",grupo:"Inseticida",form:"SC",alvo:"Traça, Helicoverpa"},
+  {id:"cabriotop",nome:"Cabrio Top",grupo:"Fungicida",form:"WG",alvo:"Míldio, Alternaria"},
+  {id:"bravonil",nome:"Bravonil 720",grupo:"Fungicida",form:"SC",alvo:"Alternaria, Septoria"},
+  {id:"abeltopro",nome:"Abelto Pro",grupo:"Fungicida",form:"SC",alvo:"Botrytis, Oídio"},
+  {id:"asgard",nome:"Asgard",grupo:"Inseticida",form:"SC",alvo:"Traça, Helicoverpa"},
+  {id:"oberon",nome:"Oberon",grupo:"Acaricida",form:"SC",alvo:"Ácaro-branco, Ácaro-rajado"},
+  {id:"connect",nome:"Connect",grupo:"Inseticida",form:"OD",alvo:"Mosca-branca, Pulgão, Trips"},
+  {id:"lanate",nome:"Lanate",grupo:"Inseticida",form:"SP",alvo:"Traça, Lagarta"},
+  {id:"maxim",nome:"Maxim",grupo:"Fungicida",form:"FS",alvo:"Botrytis, Fusarium"},
+  {id:"verno",nome:"Verno",grupo:"Fungicida",form:"EC",alvo:"Oídio, Septoria"},
+  {id:"cobrevermelho",nome:"Cobre Vermelho",grupo:"Fungicida",form:"WP",alvo:"Bacteriose, Míldio"},
+  {id:"dipel",nome:"Dipel",grupo:"Inset. Bio",form:"WP",alvo:"Traça, Lagarta"},
+  {id:"minectopro",nome:"Minecto Pro",grupo:"Inseticida",form:"SC",alvo:"Ácaro, Mosca-min., Traça"},
+  {id:"torero",nome:"Torero",grupo:"Inseticida",form:"SC",alvo:"Mosca-branca, Pulgão"},
+  {id:"pirate",nome:"Pirate",grupo:"Inseticida",form:"SC",alvo:"Trips, Ácaro, Traça"},
+  {id:"zeacist",nome:"Zeacist",grupo:"Foliar",form:"SL",alvo:"Nutrição, vigor"},
+  {id:"spraydunger",nome:"Spray Dunger",grupo:"Foliar",form:"SL",alvo:"Nutrição geral"},
+  {id:"insectork",nome:"Insector K",grupo:"Foliar",form:"SL",alvo:"Nutrição potássio"},
+  {id:"fluxxor",nome:"Fluxxor",grupo:"Foliar",form:"SL",alvo:"Aminoácidos, estresse"},
+  {id:"aminon25",nome:"Aminon 25",grupo:"Foliar",form:"SL",alvo:"Aminoácidos, floração"},
+  {id:"carbos",nome:"Carbos",grupo:"Foliar",form:"SL",alvo:"Energia, brix"},
+  {id:"boromin",nome:"Boromin",grupo:"Foliar",form:"SL",alvo:"Pegamento floral"},
+  {id:"microfol",nome:"Microfol",grupo:"Foliar",form:"SL",alvo:"Micronutrientes"},
+  {id:"oleolaranja",nome:"Óleo de Laranja",grupo:"Foliar/Adj.",form:"EC",alvo:"Adjuvante"},
+  {id:"comboceler",nome:"Comboceler",grupo:"Foliar",form:"SL",alvo:"Multiminerais"},
+  {id:"zinconutriceler",nome:"Zinco (Nutriceler)",grupo:"Foliar",form:"SL",alvo:"Nutrição zinco"},
+  {id:"manganesnutriceler",nome:"Manganês (Nutriceler)",grupo:"Foliar",form:"SL",alvo:"Fotossíntese"},
+  {id:"zincofertiquimica",nome:"Zinco (Fertiquímica)",grupo:"Foliar",form:"SL",alvo:"Nutrição zinco"},
+  {id:"sulfatopotassio",nome:"Sulfato de Potássio",grupo:"Foliar",form:"WG",alvo:"Nutrição K+S"},
+  {id:"fosfitocobre",nome:"Fosfito de Cobre",grupo:"Foliar/Fung.",form:"SL",alvo:"Míldio, Requeima"},
+  {id:"fosfitopotassio",nome:"Fosfito de Potássio",grupo:"Foliar/Fung.",form:"SL",alvo:"Requeima, Míldio"},
+];
+
+const INCOMPAT = [
+  ["metiltiofan","cercobin","Mesma molécula (tiofanato-metílico) — produto duplicado","INCOMPATÍVEL"],
+  ["metiltiofan","score","Benzimidazol + Triazol: possível incompatibilidade química","ATENÇÃO"],
+  ["cercobin","score","Benzimidazol + Triazol: possível incompatibilidade química","ATENÇÃO"],
+  ["cobrevermelho","dithane","Cobre + Ditiocarbamato: precipita e causa fitotoxicidade","INCOMPATÍVEL"],
+  ["cobrevermelho","orthocide","Cobre + Ftalimida: reação alcalina, fitotoxicidade","INCOMPATÍVEL"],
+  ["cobrevermelho","abamectina","Cobre (pH alcalino) degrada a Abamectina EC","INCOMPATÍVEL"],
+  ["cobrevermelho","score","Cobre alcaliniza e degrada Triazol EC","INCOMPATÍVEL"],
+  ["cobrevermelho","influx","Cobre alcaliniza e degrada Triazol EC","INCOMPATÍVEL"],
+  ["cobrevermelho","verno","Cobre alcaliniza e degrada Triazol EC","INCOMPATÍVEL"],
+  ["cobrevermelho","amistartop","Cobre alcaliniza e pode degradar SC sensíveis","ATENÇÃO"],
+  ["cobrevermelho","lanate","Cobre em pH alto acelera degradação de carbamatos","INCOMPATÍVEL"],
+  ["lanate","abamectina","Carbamato + Avermectina: fitotoxicidade em altas temp.","ATENÇÃO"],
+  ["lanate","dithane","Carbamato + Ditiocarbamato: sinergismo tóxico — evitar","ATENÇÃO"],
+  ["dithane","amistartop","Ditiocarbamato interfere na formulação SC","ATENÇÃO"],
+  ["actara","torero","Mesmo grupo (neonicotinoide) — resistência cruzada","ATENÇÃO"],
+  ["actara","connect","Mesmo grupo base (neonicotinoide) — resistência cruzada","ATENÇÃO"],
+  ["torero","connect","Mesmo grupo (neonicotinoide) — sem ganho na mistura","ATENÇÃO"],
+  ["abamectina","minectopro","Dois produtos com avermectina — sobreposição","INCOMPATÍVEL"],
+  ["ampligo","asgard","Diamida nos dois produtos — sobreposição","INCOMPATÍVEL"],
+  ["ampligo","minectopro","Diamida nos dois — sobreposição, resistência","INCOMPATÍVEL"],
+  ["asgard","minectopro","Diamida nos dois — sobreposição","INCOMPATÍVEL"],
+  ["score","influx","Dois triazóis — pressão de resistência","ATENÇÃO"],
+  ["score","verno","Dois triazóis — pressão de resistência","ATENÇÃO"],
+  ["influx","verno","Dois triazóis — pressão de resistência","ATENÇÃO"],
+  ["amistartop","cabriotop","Duas estrobilurinas — mesmo mecanismo","INCOMPATÍVEL"],
+  ["amistartop","verdavis","Estrobilurina duplicada","INCOMPATÍVEL"],
+  ["cabriotop","verdavis","Estrobilurina duplicada","INCOMPATÍVEL"],
+  ["dipel","score","Bt sensível a pH ácido de EC — aplicar separado","ATENÇÃO"],
+  ["dipel","amistartop","Bt pode ser afetado por fungicidas de contato","ATENÇÃO"],
+  ["fosfitocobre","cobrevermelho","Dois produtos com cobre — fitotoxicidade","INCOMPATÍVEL"],
+  ["fosfitocobre","dithane","Cobre do fosfito + Ditiocarbamato: precipita","INCOMPATÍVEL"],
+  ["fosfitocobre","orthocide","Cobre do fosfito + Ftalimida: pH alcalino","INCOMPATÍVEL"],
+  ["fosfitocobre","abamectina","Cobre pode degradar Abamectina EC","ATENÇÃO"],
+  ["fosfitocobre","lanate","Cobre em pH alto degrada carbamatos","INCOMPATÍVEL"],
+  ["fosfitocobre","score","Cobre pode degradar Triazol EC","ATENÇÃO"],
+  ["fosfitocobre","influx","Cobre pode degradar Triazol EC","ATENÇÃO"],
+  ["fosfitocobre","verno","Cobre pode degradar Triazol EC","ATENÇÃO"],
+  ["oleolaranja","abamectina","Óleo + EC: fitotoxicidade","ATENÇÃO"],
+  ["oleolaranja","score","Óleo + EC: solventes, fitotoxicidade","ATENÇÃO"],
+  ["oleolaranja","influx","Óleo + EC: solventes, fitotoxicidade","ATENÇÃO"],
+  ["oleolaranja","verno","Óleo + EC: solventes, fitotoxicidade","ATENÇÃO"],
+  ["oleolaranja","cobrevermelho","Óleo + Cobre WP: precipitação e fitotox.","INCOMPATÍVEL"],
+  ["oleolaranja","fosfitocobre","Óleo + Fosfito Cobre: fitotoxicidade","ATENÇÃO"],
+  ["oleolaranja","dithane","Óleo + Ditiocarbamato: fitotox. em calor","ATENÇÃO"],
+  ["oleolaranja","dipel","Óleo inativa o Bt — aplicar separado","INCOMPATÍVEL"],
+  ["sulfatopotassio","cobrevermelho","Sulfato K + Cobre: precipita — jar test","ATENÇÃO"],
+  ["sulfatopotassio","fosfitocobre","Sais + cobre: precipitação","ATENÇÃO"],
+  ["boromin","cobrevermelho","Boro + Cobre: precipitação em pH alcalino","ATENÇÃO"],
+  ["boromin","fosfitocobre","Boro + Cobre fosfito: precipitação em pH alto","ATENÇÃO"],
+  ["zinconutriceler","zincofertiquimica","Dois zincos — sobreposição sem benefício","ATENÇÃO"],
+  ["fosfitopotassio","fosfitocobre","Dois fosfitos — verificar pH","ATENÇÃO"],
+  ["aminon25","cobrevermelho","Aminoácidos + Cobre: precipita proteínas","ATENÇÃO"],
+  ["fluxxor","cobrevermelho","Aminoácidos + Cobre: precipita proteínas","ATENÇÃO"],
+  ["zeacist","cobrevermelho","Aminoácidos + Cobre: precipita proteínas","ATENÇÃO"],
+  ["carbos","dithane","Açúcares + Ditiocarbamato: reação em pH baixo","ATENÇÃO"],
+];
+
+const ORDEM = {WG:1,WP:2,SP:2,SL:3,SC:3,FS:3,EC:4,OD:5};
+const COR_GRUPO = {
+  "Fungicida":"#2d6a4f","Inseticida":"#7b2d00","Acaricida/Inset.":"#6b3fa0",
+  "Acaricida":"#b5451b","Inset. Bio":"#1a6b3a","Foliar":"#1a4a6b",
+  "Foliar/Fung.":"#1a5a5a","Foliar/Adj.":"#2d4a1a"
+};
+
+function getIncompat(a,b){
+  for(const r of INCOMPAT) if((r[0]===a&&r[1]===b)||(r[0]===b&&r[1]===a)) return {nivel:r[3],motivo:r[2]};
+  return null;
+}
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let selCompat=[], selReg=[], filtroEstufa='Todas', confirmDelId=null, aplicacoes=[];
+
+// ─── API GOOGLE ───────────────────────────────────────────────────────────────
+function apiCall(params){
+  const url = API + '?' + Object.keys(params).map(k=>k+'='+encodeURIComponent(params[k])).join('&');
+  return fetch(url).then(r=>r.json());
+}
+
+async function carregarAplicacoes(){
+  try {
+    const res = await apiCall({action:'listar'});
+    if(res.ok) { aplicacoes = res.dados; renderHistorico(); }
+    else setStatus('⚠️ Erro ao carregar: '+res.erro, '#e57373');
+  } catch(e) {
+    setStatus('⚠️ Sem conexão. Verifique internet.', '#e57373');
+    document.getElementById('historico').innerHTML='<div class="empty">Sem conexão com o servidor</div>';
+  }
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function showTab(t,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── ABA COMPAT ───────────────────────────────────────────────────────────────
+function renderListaCompat(){
+  const q=document.getElementById('busca-compat').value.toLowerCase();
+  const filtrados=PRODUTOS.filter(p=>p.nome.toLowerCase().includes(q)||p.grupo.toLowerCase().includes(q)||p.alvo.toLowerCase().includes(q));
+  document.getElementById('lista-compat').innerHTML=filtrados.map(p=>{
+    const sel=selCompat.includes(p.id);
+    return `<div class="prod-item${sel?' sel':''}" onclick="toggleCompat('${p.id}')">
+      <div class="chk${sel?' on':''}">${sel?'✓':''}</div>
+      <div style="flex:1"><div class="prod-nome">${p.nome}</div><div class="prod-alvo">${p.alvo}</div></div>
+      <span class="badge" style="background:${COR_GRUPO[p.grupo]||'#2d5a27'}">${p.grupo}</span>
+      <span class="form-badge">${p.form}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('count-sel').textContent=selCompat.length;
+  renderResultado();
+}
+
+function toggleCompat(id){
+  selCompat=selCompat.includes(id)?selCompat.filter(x=>x!==id):[...selCompat,id];
+  renderListaCompat();
+}
+
+function renderResultado(){
+  const div=document.getElementById('resultado-compat');
+  const sels=PRODUTOS.filter(p=>selCompat.includes(p.id));
+  if(sels.length<2){ div.innerHTML=`<div class="empty">${sels.length===0?'☝️ Selecione os produtos que deseja misturar':'Selecione pelo menos 2 produtos'}</div>`; return; }
+  const pares=[];
+  for(let i=0;i<sels.length;i++) for(let j=i+1;j<sels.length;j++) pares.push({a:sels[i],b:sels[j],c:getIncompat(sels[i].id,sels[j].id)});
+  const temI=pares.some(p=>p.c?.nivel==='INCOMPATÍVEL'), temA=pares.some(p=>p.c?.nivel==='ATENÇÃO');
+  const status=temI?'INCOMPATÍVEL':temA?'ATENÇÃO':'COMPATÍVEL';
+  let html=`<div class="result-box result-${status==='INCOMPATÍVEL'?'incompat':status==='ATENÇÃO'?'atencao':'ok'}">
+    <div class="result-icon">${status==='INCOMPATÍVEL'?'🚫':status==='ATENÇÃO'?'⚠️':'✅'}</div>
+    <div><div class="result-title" style="color:${status==='INCOMPATÍVEL'?'#ef9a9a':status==='ATENÇÃO'?'#ffe082':'#a5d6a7'}">
+      ${status==='INCOMPATÍVEL'?'Mistura NÃO recomendada':status==='ATENÇÃO'?'Mistura com restrições':'Mistura compatível'}
+    </div><div class="result-sub">${sels.length} produtos · ${pares.length} combinações</div></div></div>`;
+  pares.filter(p=>p.c).forEach(({a,b,c})=>{
+    html+=`<div class="par-item par-${c.nivel==='INCOMPATÍVEL'?'incompat':'atencao'}">
+      <div class="par-label" style="color:${c.nivel==='INCOMPATÍVEL'?'#ef9a9a':'#ffe082'}">${c.nivel==='INCOMPATÍVEL'?'🚫 INCOMPATÍVEL':'⚠️ ATENÇÃO'}</div>
+      <div class="par-nomes"><strong style="color:#a5d6a7">${a.nome}</strong> <span style="color:#558b2f">+</span> <strong style="color:#a5d6a7">${b.nome}</strong></div>
+      <div class="par-motivo">${c.motivo}</div></div>`;
+  });
+  const okP=pares.filter(p=>!p.c);
+  if(okP.length>0&&pares.some(p=>p.c)) html+=`<div class="ok-box"><div class="ok-title">✅ Sem problemas entre:</div>${okP.map(({a,b})=>`<div class="ok-item">${a.nome} + ${b.nome}</div>`).join('')}</div>`;
+  const ordem=[...sels].sort((a,b)=>(ORDEM[a.form]||6)-(ORDEM[b.form]||6));
+  html+=`<div class="card"><div class="label">ORDEM DE ADIÇÃO NO TANQUE</div>
+    ${ordem.map((p,i)=>`<div class="ordem-item"><div class="ordem-num">${i+1}</div>
+      <div style="flex:1"><span style="font-size:13px;color:#c8e6c9">${p.nome}</span> <span class="form-badge">${p.form}</span></div>
+      <span style="font-size:11px;color:#558b2f">${p.alvo}</span></div>`).join('')}
+    <div class="dica">💧 Adicionar com tanque em movimento. Completar água por último.</div></div>`;
+  div.innerHTML=html;
+}
+
+// ─── ABA REGISTRO ─────────────────────────────────────────────────────────────
+function renderListaReg(){
+  const q=document.getElementById('busca-reg').value.toLowerCase();
+  const filtrados=PRODUTOS.filter(p=>p.nome.toLowerCase().includes(q)||p.grupo.toLowerCase().includes(q));
+  document.getElementById('lista-reg').innerHTML=filtrados.map(p=>{
+    const sel=selReg.includes(p.id);
+    return `<div class="prod-item${sel?' sel':''}" onclick="toggleReg('${p.id}')">
+      <div class="chk${sel?' on':''}">${sel?'✓':''}</div>
+      <span class="prod-nome">${p.nome}</span>
+      <span class="badge" style="background:${COR_GRUPO[p.grupo]||'#2d5a27'}">${p.grupo}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('count-reg').textContent=selReg.length;
+  atualizarBtn();
+}
+
+function toggleReg(id){ selReg=selReg.includes(id)?selReg.filter(x=>x!==id):[...selReg,id]; renderListaReg(); }
+function atualizarBtn(){ document.getElementById('btn-salvar').disabled=!(selReg.length>0&&document.getElementById('sel-data').value); }
+
+function setStatus(msg, cor){ const el=document.getElementById('status-msg'); el.textContent=msg; el.style.color=cor||'#66bb6a'; }
+
+async function salvarAplicacao(){
+  const estufa=document.getElementById('sel-estufa').value;
+  const data=document.getElementById('sel-data').value;
+  const volume=document.getElementById('sel-volume').value;
+  const obs=document.getElementById('sel-obs').value;
+  if(!data||selReg.length===0) return;
+
+  const btn=document.getElementById('btn-salvar');
+  btn.disabled=true;
+  btn.textContent='⏳ Salvando...';
+  setStatus('Salvando na planilha...','#81c784');
+
+  try {
+    const res = await apiCall({
+      action:'salvar',
+      id: Date.now().toString(),
+      estufa, data, volume, obs,
+      produtos: selReg.join('|')
+    });
+    if(res.ok){
+      setStatus('✅ Salvo na planilha Google!','#66bb6a');
+      selReg=[];
+      document.getElementById('sel-volume').value='';
+      document.getElementById('sel-obs').value='';
+      document.getElementById('busca-reg').value='';
+      renderListaReg();
+      await carregarAplicacoes();
+      setTimeout(()=>setStatus('',''), 3000);
+    } else {
+      setStatus('⚠️ Erro: '+res.erro,'#e57373');
+    }
+  } catch(e){
+    setStatus('⚠️ Sem conexão. Verifique internet.','#e57373');
+  }
+  btn.disabled=false;
+  btn.textContent='💾 Salvar Aplicação';
+  atualizarBtn();
+}
+
+function renderFiltros(){
+  const estufas=['Todas','Estufa 1','Estufa 2','Estufa 3','Estufa 4','Estufa 5','Estufa 6','Estufa 7'];
+  document.getElementById('filtros-estufa').innerHTML=estufas.map(e=>
+    `<button class="filter-btn${filtroEstufa===e?' active':''}" onclick="setFiltro('${e}')">${e}</button>`
+  ).join('');
+}
+
+function setFiltro(e){ filtroEstufa=e; renderFiltros(); renderHistorico(); }
+function nomeProd(id){ return PRODUTOS.find(p=>p.id===id)?.nome||id; }
+function fmtData(d){
+  if(!d) return '';
+  const s = d.toString().trim();
+  if(/^[0-9]{2}\/[0-9]{2}\/[0-9]{2,4}$/.test(s)){const p=s.split('/');const yr=p[2].length===4?p[2].slice(2):p[2];return p[0]+'/'+p[1]+'/'+yr;}
+  if(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s)){const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0].slice(2);}
+  if(/^[0-9]+(\.[0-9]+)?$/.test(s)){const dt=new Date(Math.round((parseFloat(s)-25569)*86400*1000));const dd=String(dt.getUTCDate()).padStart(2,'0');const mm=String(dt.getUTCMonth()+1).padStart(2,'0');const yy=String(dt.getUTCFullYear()).slice(2);return dd+'/'+mm+'/'+yy;}
+  return s;
+}
+
+function renderHistorico(){
+  const lista=filtroEstufa==='Todas'?aplicacoes:aplicacoes.filter(a=>a.estufa===filtroEstufa);
+  document.getElementById('count-hist').textContent=lista.length;
+  const div=document.getElementById('historico');
+  if(lista.length===0){ div.innerHTML='<div class="empty">Nenhuma aplicação registrada ainda</div>'; return; }
+  div.innerHTML=lista.map(ap=>{
+    const isC=confirmDelId===ap.id;
+    const prods=Array.isArray(ap.produtos)?ap.produtos:(ap.produtos?ap.produtos.split('|'):[]);
+    return `<div class="reg-card">
+      <div class="reg-header">
+        <div><span class="reg-estufa">${ap.estufa}</span>
+          <span class="reg-info"> 📅 ${fmtData(ap.data)}${ap.volume?' · 💧 '+ap.volume+'L':''}</span></div>
+        ${isC
+          ?`<div class="del-confirm"><button class="del-yes" onclick="deletar('${ap.id}')">Confirmar</button><button class="del-no" onclick="cancelDel()">Cancelar</button></div>`
+          :`<button class="del-btn" onclick="askDel('${ap.id}')">🗑 Excluir</button>`}
+      </div>
+      <div class="reg-tags">${prods.map(pid=>`<span class="reg-tag">${nomeProd(pid)}</span>`).join('')}</div>
+      ${ap.obs?`<div class="reg-obs">📝 ${ap.obs}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function askDel(id){ confirmDelId=id; renderHistorico(); }
+function cancelDel(){ confirmDelId=null; renderHistorico(); }
+
+async function deletar(id){
+  try {
+    const res=await apiCall({action:'deletar',id});
+    if(res.ok){ aplicacoes=aplicacoes.filter(a=>a.id!=id); confirmDelId=null; renderHistorico(); }
+    else alert('Erro ao excluir: '+res.erro);
+  } catch(e){ alert('Sem conexão.'); }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('sel-data').value=new Date().toISOString().split('T')[0];
+renderListaCompat();
+renderListaReg();
+renderFiltros();
+carregarAplicacoes();
+</script>
+</body>
+</html>
