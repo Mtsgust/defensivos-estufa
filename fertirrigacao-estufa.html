@@ -133,22 +133,49 @@ const SHEET_TYPE = "fertirrigacao";
 const DIAS = ["Domingo","Segunda-feira","Terça-feira","Quarta-feira","Quinta-feira","Sexta-feira","Sábado"];
 
 const PRODUTOS = [
-  {id:"map_yara", nome:"MAP Yara", grupo:"Fósforo/Nitrogênio", unidade:"g/1000L", obs:"Fosfato monoamônio"},
-  {id:"nitrato_calcio", nome:"Nitrato de Cálcio Yara", grupo:"Cálcio/Nitrogênio", unidade:"g/1000L", obs:"Ca + N nítrico"},
-  {id:"carbonato_calcio", nome:"Carbonato de Cálcio (Solo Terra)", grupo:"Correção/Cálcio", unidade:"g/1000L", obs:"Correção pH e Ca"},
-  {id:"sulfato_potassio", nome:"Sulfato de Potássio Yara", grupo:"Potássio/Enxofre", unidade:"g/1000L", obs:"K + S"},
-  {id:"magnitron", nome:"Magnitron (Biolchin)", grupo:"Magnésio", unidade:"ml/1000L", obs:"Magnésio quelado"},
-  {id:"sulfato_magnesio", nome:"Sulfato de Magnésio", grupo:"Magnésio/Enxofre", unidade:"g/1000L", obs:"Mg + S"},
-  {id:"boromin", nome:"Boromin (Biolchin)", grupo:"Boro", unidade:"ml/1000L", obs:"Boro foliar/fertirrigação"},
-  {id:"sopao", nome:"Sopão", grupo:"NPK Complexo", unidade:"ml/1000L", obs:"Fertilizante complexo"},
-  {id:"actara", nome:"Actara", grupo:"Inseticida", unidade:"g/1000L", obs:"Mosca-branca, Pulgão"},
-  {id:"ampligo", nome:"Ampligo", grupo:"Inseticida", unidade:"ml/1000L", obs:"Traça, Helicoverpa"},
-  {id:"maxim", nome:"Maxim", grupo:"Fungicida", unidade:"ml/1000L", obs:"Botrytis, Fusarium"},
-  {id:"cobre_vermelho", nome:"Cobre Vermelho", grupo:"Fungicida", unidade:"g/1000L", obs:"Bacteriose, Míldio"},
-  {id:"korplan", nome:"Korplan", grupo:"Fungicida", unidade:"ml/1000L", obs:"Fusarium, Pythium"},
-  {id:"cercobin", nome:"Cercobin", grupo:"Fungicida", unidade:"g/1000L", obs:"Oídio, Botrytis"},
-  {id:"enraizador", nome:"Enraizador", grupo:"Bioestimulante", unidade:"ml/1000L", obs:"Enraizamento"},
-  {id:"biologicos", nome:"Biológicos", grupo:"Biocontrole", unidade:"ml/1000L", obs:"Controle biológico"},
+  // MACRONUTRIENTES / CONVENCIONAIS
+  {id:"map_yara", nome:"MAP (Yara)", grupo:"Fósforo/Nitrogênio", unidade:"g/1000L", obs:"N 12% + P2O5 61% — Fosfato Monoamônio; enraizamento"},
+  {id:"nitrato_calcio", nome:"Nitrato de Cálcio (Yara/Manuchar)", grupo:"Cálcio/Nitrogênio", unidade:"g/1000L", obs:"N 15,5% + Ca 19% — pronta assimilação; previne podridão apical"},
+  {id:"sulfato_potassio", nome:"Sulfato de Potássio (Yara)", grupo:"Potássio/Enxofre", unidade:"g/1000L", obs:"K2O 50% + S 18% — isento de cloro; qualidade dos frutos"},
+  {id:"sulfato_magnesio", nome:"Sulfato de Magnésio (Safire)", grupo:"Magnésio/Enxofre", unidade:"g/1000L", obs:"MgO 16% + S 13% — corrige clorose magnésica; melhora fotossíntese"},
+  {id:"carbonato_calcio", nome:"Carbonato de Cálcio (Solo Rica)", grupo:"Correção/Cálcio", unidade:"g/1000L", obs:"CaCO3 ≥95% — correção de acidez; fonte de cálcio"},
+  // FOLIARES BIOLCHIM
+  {id:"magnitron", nome:"Magnitron (Biolchim)", grupo:"Magnésio", unidade:"ml/1000L", obs:"Mg ~9-11% + N ~11% (Nitrato de Magnésio) — fotossíntese"},
+  {id:"boromin", nome:"Boromin (Biolchim)", grupo:"Boro", unidade:"ml/1000L", obs:"B ~11% complexado com MEA — pegamento floral e frutificação"},
+  {id:"fosfitocobre", nome:"Fosfito de Cobre (Biolchim)", grupo:"Fosfito/Cobre", unidade:"ml/1000L", obs:"P2O5 ~40% + Cu ~5% — fitofortificante; Phytophthora, Pythium"},
+  {id:"microfol", nome:"Microfol (Biolchim)", grupo:"Micronutrientes", unidade:"ml/1000L", obs:"Mg, S, B, Cu, Fe, Mn, Zn quelados — correção múltipla"},
+  {id:"rizamina", nome:"Rizamina (Biolchim)", grupo:"Bioestimulante", unidade:"ml/1000L", obs:"Aminoácidos livres + NPK + micronutrientes — enraizamento e estresse"},
+  {id:"ligoplex", nome:"Ligoplex (Biolchim)", grupo:"Cálcio", unidade:"ml/1000L", obs:"Ca complexado com LSA — previne podridão apical e rachadura"},
+  {id:"nitrocam", nome:"Nitrocam (Biolchim)", grupo:"N/Ca/Mg", unidade:"ml/1000L", obs:"N + Ca + Mg foliar — alta absorção; previne colapso foliar"},
+  // FOLIARES NUTRICELER
+  {id:"comboceler", nome:"Comboceler Multiminerais (Nutriceler)", grupo:"Micronutrientes", unidade:"ml/1000L", obs:"B, Cu, Fe, Mn, Mo, Zn quelatos — deficiências múltiplas"},
+  {id:"zinconutriceler", nome:"Zinco (Nutriceler)", grupo:"Zinco", unidade:"ml/1000L", obs:"Zinco quelado alta concentração — ativa enzimas e auxinas"},
+  {id:"manganesnutriceler", nome:"Manganês (Nutriceler)", grupo:"Manganês", unidade:"ml/1000L", obs:"Manganês quelado alta concentração — fotossíntese e enzimas"},
+  {id:"akrod", nome:"Akro D (Nutriceler)", grupo:"NPK Fertirrigação", unidade:"ml/1000L", obs:"NPK + micronutrientes — linha Akro para fertirrigação eficiente"},
+  // FOLIARES TECHNES
+  {id:"aminon25", nome:"Aminon 25 (Technes)", grupo:"Aminoácidos", unidade:"ml/1000L", obs:"Aminoácidos livres + N 11% + K2O 1% — bioestimulante; estresse"},
+  {id:"carbos", nome:"Carbos (Technes)", grupo:"Potássio/Carbono", unidade:"ml/1000L", obs:"K2O + carbono orgânico — estimula metabolismo; melhora brix"},
+  {id:"pectus", nome:"Pectus (Technes)", grupo:"Ca/B/Aminoácidos", unidade:"ml/1000L", obs:"Ca + B + aminoácidos — pegamento floral; estrutura celular"},
+  // FOLIARES FERTIQUÍMICA
+  {id:"insectork", nome:"Insector K (Fertiquímica)", grupo:"Potássio", unidade:"ml/1000L", obs:"K2O — fortalece parede celular; resistência a pragas"},
+  // FOLIARES PLANT QUALITY
+  {id:"plantreviv", nome:"Plant Reviv (Plant Quality)", grupo:"Bioestimulante", unidade:"ml/1000L", obs:"Aminoácidos + extratos vegetais — recuperação de estresses abióticos"},
+  {id:"plantroot", nome:"Plant Root (Plant Quality)", grupo:"Bioestimulante Radicular", unidade:"ml/1000L", obs:"Aminoácidos + auxinas/citocininas — enraizamento e vigor inicial"},
+  // FOLIARES WISER
+  {id:"fitofsk", nome:"Fitofos K (Wiser)", grupo:"Fosfito/Potássio", unidade:"ml/1000L", obs:"P2O5 ~40% + K2O ~20% — fitofortificante; Phytophthora, Pythium"},
+  {id:"gliconatocobre", nome:"Gluconato de Cobre (Wiser)", grupo:"Cobre", unidade:"ml/1000L", obs:"Cu complexado com glucônico — fungistático e bacteriostático"},
+  {id:"cleanup", nome:"Clean Up Wiser", grupo:"Adjuvante/Solo", unidade:"ml/1000L", obs:"Ácidos húmicos + fúlvicos — limpeza de emissores; reduz salinidade"},
+  // OUTROS
+  {id:"sopao", nome:"Sopão", grupo:"NPK Complexo", unidade:"ml/1000L", obs:"Fertilizante complexo — nutrição geral"},
+  {id:"enraizador", nome:"Enraizador", grupo:"Bioestimulante", unidade:"ml/1000L", obs:"Estimula enraizamento e absorção de nutrientes"},
+  {id:"biologicos", nome:"Biológicos", grupo:"Biocontrole", unidade:"ml/1000L", obs:"Controle biológico — Bacillus spp., Trichoderma, etc."},
+  // DEFENSIVOS NA FERTIRRIGAÇÃO
+  {id:"actara", nome:"Actara", grupo:"Inseticida", unidade:"g/1000L", obs:"Tiametoxam (IRAC 4A) — Mosca-branca, Pulgão (sistêmico)"},
+  {id:"ampligo", nome:"Ampligo", grupo:"Inseticida", unidade:"ml/1000L", obs:"Clorantraniliprole + Lambda (IRAC 28+3A) — Traça, Lagartas"},
+  {id:"maxim", nome:"Maxim XL", grupo:"Fungicida Solo", unidade:"ml/1000L", obs:"Fludioxonil + Metalaxil-M — Fusarium, Pythium, Rhizoctonia"},
+  {id:"cobre_vermelho", nome:"Cobre Vermelho", grupo:"Fungicida/Bactericida", unidade:"g/1000L", obs:"Cobre (FRAC M01) — Bacterioses, Míldio"},
+  {id:"korplan", nome:"Korplan", grupo:"Fungicida Solo", unidade:"ml/1000L", obs:"Fusarium, Pythium — doenças de solo"},
+  {id:"cercobin", nome:"Cercobin", grupo:"Fungicida", unidade:"g/1000L", obs:"Tiofanato-metílico (FRAC B1) — Oídio, Botrytis"},
 ];
 
 const COR_GRUPO = {
