@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Nutrição</title>
+<style>
+  :root{
+    --bg:#F2F5EF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --paper:#FFFFFF; --line:#DCE3D8; --pend:#C68A2E; --feito:#3D7A5C; --danger:#B5432F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding-bottom:100px;}
+  header{background:var(--leaf-dark); color:#fff; padding:16px 20px 20px; position:sticky; top:0; z-index:5;}
+  header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
+  header h1{margin:6px 0 0; font-size:20px;}
+  .tabs{display:flex; gap:8px; margin:14px 20px 0;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer;}
+  .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
+  main{padding:16px 20px;}
+  .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
+  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
+  .item-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+  .badge{
+    font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; font-weight:600;
+    background:var(--leaf); color:#fff; padding:3px 9px; border-radius:6px; white-space:nowrap;
+  }
+  .tipo-chip{font-size:11px; background:#EAE3D2; color:#7A6A34; padding:3px 8px; border-radius:20px; font-weight:600;}
+  .status{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+  .status.pendente{background:#FBEBD3; color:var(--pend);}
+  .status.feito{background:#DCEFE3; color:var(--feito);}
+  .status.atrasado{background:#F7DAD2; color:var(--danger);}
+  .group-header{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#6C7A67; margin:22px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--line);}
+  .group-header:first-child{margin-top:0;}
+  .item h3{margin:8px 0 2px; font-size:16px;}
+  .item p{margin:0; font-size:13px; color:#54614F;}
+  .item .meta{font-size:12px; color:#8A968A; margin-top:6px;}
+  .item .actions{display:flex; gap:8px; margin-top:10px;}
+  .item button{flex:1; border:none; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600;}
+  .btn-done{background:var(--feito); color:#fff;}
+  .btn-del{background:transparent; color:var(--danger); border:1px solid var(--danger) !important;}
+  .fab{
+    position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto;
+    background:var(--leaf); color:#fff; border:none; border-radius:14px; padding:16px;
+    font-size:16px; font-weight:600; box-shadow:0 4px 14px rgba(23,52,37,.35);
+  }
+  dialog{border:none; border-radius:16px; width:min(92vw,420px); padding:0;}
+  dialog::backdrop{background:rgba(23,52,37,.45);}
+  .sheet{padding:20px; max-height:85vh; overflow-y:auto;}
+  .sheet h2{margin:0 0 16px; font-size:18px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:#54614F; margin-bottom:5px;}
+  .field select, .field input, .field textarea{
+    width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:15px; background:#fff;
+  }
+  .row2{display:flex; gap:10px;}
+  .row2 .field{flex:1;}
+  .sheet-actions{display:flex; gap:10px; margin-top:14px;}
+  .sheet-actions button{flex:1; padding:12px; border-radius:9px; border:none; font-size:15px; font-weight:600;}
+  .btn-cancel{background:#EDEFEA; color:var(--ink);}
+  .btn-save{background:var(--leaf); color:#fff;}
+  .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
+  .hint{font-size:12px; color:#8A968A; margin:-6px 0 12px;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">‹ voltar</a>
+  <h1>Nutrição</h1>
+  <div class="tabs">
+    <div class="tab active" data-f="pendente">Pendentes</div>
+    <div class="tab" data-f="feito">Feitas</div>
+    <div class="tab" data-f="todas">Todas</div>
+  </div>
+</header>
+<main id="list"><div class="loading">Carregando…</div></main>
+
+<button class="fab" onclick="openForm()">+ Nova tarefa</button>
+
+<dialog id="dialog">
+  <div class="sheet">
+    <h2 id="dlgTitle">Nova tarefa</h2>
+    <p class="hint">Lance aqui o que veio no plano semanal do técnico.</p>
+    <div class="row2">
+      <div class="field">
+        <label>Estufa</label>
+        <select id="fEstufa">
+          <option value="1">Estufa 1</option><option value="2">Estufa 2</option>
+          <option value="3">Estufa 3</option><option value="4">Estufa 4</option>
+          <option value="5">Estufa 5</option><option value="6">Estufa 6</option>
+          <option value="7">Estufa 7</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Situação</label>
+        <select id="fStatus">
+          <option value="pendente">Precisa fazer</option>
+          <option value="feito">Já foi feito</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <select id="fTipoTarefa">
+        <option value="Tratamento de solo">Tratamento de solo</option>
+        <option value="Biológico">Biológico</option>
+        <option value="Fertirrigação">Fertirrigação</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Produto / insumo</label>
+      <input id="fProduto" type="text" placeholder="ex: Trichoderma, gesso agrícola...">
+    </div>
+    <div class="field">
+      <label>Dose</label>
+      <input id="fDose" type="text" placeholder="ex: 2kg/estufa">
+    </div>
+    <div class="field">
+      <label>Data (prevista ou feita)</label>
+      <input id="fData" type="date">
+    </div>
+    <div class="field">
+      <label>Observação</label>
+      <textarea id="fObs" rows="2"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
+      <button class="btn-save" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script>
+let dados = [];
+let filtro = 'pendente';
+
+async function carregar(){
+  document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
+  try{
+    const r = await fetch(`${API_URL}?tipo=nutricao`);
+    const j = await r.json();
+    dados = (j.data || []).sort((a,b)=> new Date(b.dataCriacao) - new Date(a.dataCriacao));
+    render();
+  }catch(e){
+    document.getElementById('list').innerHTML = '<div class="loading">Erro ao carregar. Confira a URL em config.js.</div>';
+  }
+}
+
+function isAtrasado(d){
+  if(d.status === 'feito' || !d.dataPrevista) return false;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const dt = new Date(d.dataPrevista + 'T00:00:00');
+  return dt < hoje;
+}
+
+function itemCard(d){
+  const atrasado = isAtrasado(d);
+  const statusLabel = d.status === 'feito' ? 'Feito' : (atrasado ? 'Atrasado' : 'Pendente');
+  const statusClass = d.status === 'feito' ? 'feito' : (atrasado ? 'atrasado' : 'pendente');
+  return `
+    <div class="item">
+      <div class="item-top">
+        <span class="badge">Estufa ${d.estufa}</span>
+        <span class="status ${statusClass}">${statusLabel}</span>
+      </div>
+      <div style="margin-top:8px;"><span class="tipo-chip">${escapeHtml(d.tipoTarefa || 'Outro')}</span></div>
+      <h3>${escapeHtml(d.produto || '(insumo não informado)')}</h3>
+      ${d.dose ? `<p>Dose: ${escapeHtml(d.dose)}</p>` : ''}
+      ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
+      <div class="meta">${d.status === 'feito' ? (d.dataExecucao ? 'Feito em ' + fmtData(d.dataExecucao) : '') : (d.dataPrevista ? 'Previsto para ' + fmtData(d.dataPrevista) : 'Sem data definida')}</div>
+      <div class="actions">
+        ${d.status !== 'feito' ? `<button class="btn-done" onclick="marcarFeito('${d.id}')">Marcar como feito</button>` : ''}
+        <button class="btn-del" onclick="excluir('${d.id}')">Excluir</button>
+      </div>
+    </div>
+  `;
+}
+
+function render(){
+  const list = document.getElementById('list');
+  let itens = dados;
+  if(filtro !== 'todas') itens = dados.filter(d => d.status === filtro);
+  if(itens.length === 0){
+    list.innerHTML = '<div class="empty">Nada por aqui.</div>';
+    return;
+  }
+
+  if(filtro === 'feito'){
+    itens = itens.slice().sort((a,b) => new Date(b.dataExecucao||b.dataCriacao) - new Date(a.dataExecucao||a.dataCriacao));
+    list.innerHTML = itens.map(itemCard).join('');
+    return;
+  }
+
+  // pendentes (e "todas"): agrupa por data prevista — assim dá pra ver o mês inteiro planejado
+  itens = itens.slice().sort((a,b) => {
+    if(!a.dataPrevista) return 1;
+    if(!b.dataPrevista) return -1;
+    return new Date(a.dataPrevista) - new Date(b.dataPrevista);
+  });
+  let html = '';
+  let grupoAtual = null;
+  itens.forEach(d => {
+    const chave = d.dataPrevista || 'sem-data';
+    if(chave !== grupoAtual){
+      grupoAtual = chave;
+      const titulo = d.dataPrevista ? fmtData(d.dataPrevista) : 'Sem data definida';
+      html += `<div class="group-header">${titulo}</div>`;
+    }
+    html += itemCard(d);
+  });
+  list.innerHTML = html;
+}
+
+function fmtData(v){
+  const dt = new Date(v.length === 10 ? v + 'T00:00:00' : v);
+  if(isNaN(dt)) return v;
+  return dt.toLocaleDateString('pt-BR');
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  filtro = t.dataset.f;
+  render();
+}));
+
+function hojeISO(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+function openForm(){
+  document.getElementById('fEstufa').value='1';
+  document.getElementById('fStatus').value='pendente';
+  document.getElementById('fTipoTarefa').value='Tratamento de solo';
+  document.getElementById('fProduto').value='';
+  document.getElementById('fDose').value='';
+  document.getElementById('fData').value=hojeISO();
+  document.getElementById('fObs').value='';
+  document.getElementById('dialog').showModal();
+}
+function closeForm(){ document.getElementById('dialog').close(); }
+
+async function salvar(){
+  const status = document.getElementById('fStatus').value;
+  const data = document.getElementById('fData').value;
+  const payload = {
+    tipo: 'nutricao',
+    action: 'add',
+    data: {
+      estufa: document.getElementById('fEstufa').value,
+      tipoTarefa: document.getElementById('fTipoTarefa').value,
+      produto: document.getElementById('fProduto').value,
+      dose: document.getElementById('fDose').value,
+      obs: document.getElementById('fObs').value,
+      status: status,
+      dataPrevista: status === 'pendente' ? data : '',
+      dataExecucao: status === 'feito' ? data : ''
+    }
+  };
+  closeForm();
+  await fetch(API_URL, {method:'POST', body: JSON.stringify(payload)});
+  carregar();
+}
+
+async function marcarFeito(id){
+  await fetch(API_URL, {method:'POST', body: JSON.stringify({
+    tipo:'nutricao', action:'update', id,
+    data:{ status:'feito', dataExecucao: hojeISO() }
+  })});
+  carregar();
+}
+
+async function excluir(id){
+  if(!confirm('Excluir este registro?')) return;
+  await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'nutricao', action:'delete', id})});
+  carregar();
+}
+
+carregar();
+</script>
+</body>
+</html>
