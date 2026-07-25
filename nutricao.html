@@ -83,15 +83,17 @@
   .dot-pend{background:var(--pend);} .dot-feito{background:var(--feito);} .dot-atrasado{background:var(--danger);}
 
   .cal-grid{padding:0 20px; }
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:11px; color:#8A968A; margin-bottom:4px;}
-  .cal-days{display:grid; grid-template-columns:repeat(7,1fr); gap:5px;}
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); text-align:center; font-size:11px; color:#8A968A; margin-bottom:4px;}
+  .cal-days{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:5px;}
   .cal-day{
-    aspect-ratio:1; border-radius:10px; background:var(--paper); border:1px solid var(--line);
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-    font-size:13px; cursor:pointer; position:relative;
+    position:relative; width:100%; padding-top:100%; border-radius:10px; background:var(--paper); border:1px solid var(--line);
+    font-size:13px; cursor:pointer; min-width:0; overflow:hidden;
   }
   .cal-day.empty{background:transparent; border:none; cursor:default;}
   .cal-day.today{border:2px solid var(--leaf);}
+  .cal-day .day-inner{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  }
   .cal-day .dots{display:flex; gap:2px;}
   .cal-day .dots i{width:5px; height:5px; border-radius:50%; display:inline-block;}
 
@@ -364,8 +366,10 @@ function renderCalendario(){
     if(temPend) dots += '<i class="dot-pend"></i>';
     if(temFeito) dots += '<i class="dot-feito"></i>';
     html += `<div class="cal-day ${iso===hojeIso?'today':''}" onclick="abrirDia('${iso}')">
-      <span>${dia}</span>
-      <span class="dots">${dots}</span>
+      <div class="day-inner">
+        <span>${dia}</span>
+        <span class="dots">${dots}</span>
+      </div>
     </div>`;
   }
   document.getElementById('calDays').innerHTML = html;
