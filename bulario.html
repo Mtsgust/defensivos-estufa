@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Bulário</title>
+<link rel="manifest" href="manifest-bulario.json">
+<meta name="theme-color" content="#173425">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bulário">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#EFEFEF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --paper:#FFFFFF; --line:#DCE3D8; --ok:#3D7A5C; --warn:#C68A2E; --danger:#B5432F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding-bottom:100px;}
+  header{background:var(--leaf-dark); color:#fff; padding:16px 20px 20px; position:sticky; top:0; z-index:5;}
+  header h1{margin:6px 0 0; font-size:20px;}
+  header p{margin:4px 0 0; font-size:12px; color:#CFE0D3;}
+  .search{margin:14px 20px 0;}
+  .search input{width:100%; padding:11px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; font-size:15px;}
+  .search input::placeholder{color:#B9C9BE;}
+  .filters{display:flex; gap:8px; margin:10px 20px 0; overflow-x:auto; padding-bottom:2px;}
+  .chip{flex:0 0 auto; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600; background:rgba(255,255,255,.08); color:#CFE0D3; border:1px solid rgba(255,255,255,.18); white-space:nowrap;}
+  .chip.active{background:#fff; color:var(--leaf-dark);}
+
+  main{padding:16px 20px;}
+  .alert{background:#FBEBD3; border:1px solid #E9C77E; color:#6B4F16; border-radius:12px; padding:12px 14px; font-size:12.5px; margin-bottom:16px; line-height:1.5;}
+  .alert strong{display:block; margin-bottom:4px; font-size:13px;}
+
+  .card{background:var(--paper); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-bottom:12px;}
+  .card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .card-top h3{margin:0; font-size:16px;}
+  .cat{font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:3px 8px; border-radius:6px; white-space:nowrap;}
+  .cat-fungicida{background:#E4EEF7; color:#2A5C82;}
+  .cat-inseticida{background:#F7E4E4; color:#8C2E2E;}
+  .cat-acaricida{background:#F0E4F7; color:#5C2E82;}
+  .cat-mix{background:#EFE9DC; color:#7A5C1E;}
+  .ia{font-size:12.5px; color:#54614F; margin:4px 0 10px;}
+  .usos{display:flex; flex-direction:column; gap:8px;}
+  .uso{background:var(--bg); border-radius:9px; padding:9px 11px; font-size:13px;}
+  .uso .alvo{font-weight:600; margin-bottom:2px;}
+  .uso .dose{color:#2E4A38;}
+  .uso .dose.unsure{color:var(--warn);}
+  .uso .tag-unsure{font-size:10px; background:#FBEBD3; color:var(--warn); padding:1px 6px; border-radius:5px; margin-left:6px; font-weight:700;}
+  .uso .obs{color:#8A968A; font-size:11.5px; margin-top:3px;}
+  .uso-actions{display:flex; gap:6px; margin-top:6px;}
+  .uso-actions button{border:none; background:none; font-size:11px; color:#8A968A; padding:2px 4px;}
+  .uso-actions button.del{color:var(--danger);}
+
+  .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
+
+  .fab{
+    position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto;
+    background:var(--leaf); color:#fff; border:none; border-radius:14px; padding:16px;
+    font-size:16px; font-weight:600; box-shadow:0 4px 14px rgba(23,52,37,.35);
+  }
+  dialog{border:none; border-radius:16px; width:min(92vw,420px); padding:0;}
+  dialog::backdrop{background:rgba(23,52,37,.45);}
+  .sheet{padding:20px; max-height:85vh; overflow-y:auto;}
+  .sheet h2{margin:0 0 16px; font-size:18px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:#54614F; margin-bottom:5px;}
+  .field select, .field input, .field textarea{
+    width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:15px; background:#fff;
+  }
+  .sheet-actions{display:flex; gap:10px; margin-top:14px;}
+  .sheet-actions button{flex:1; padding:12px; border-radius:9px; border:none; font-size:15px; font-weight:600;}
+  .btn-cancel{background:#EDEFEA; color:var(--ink);}
+  .btn-save{background:var(--leaf); color:#fff;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Bulário</h1>
+  <p>Doses de partida — confira o que estiver marcado como "confirmar" antes de usar</p>
+  <div class="search"><input id="busca" placeholder="Buscar produto, alvo ou ingrediente..." oninput="render()"></div>
+  <div class="filters" id="filtros"></div>
+</header>
+
+<main id="list"></main>
+
+<button class="fab" onclick="openForm()">+ Nova entrada</button>
+
+<dialog id="dialog">
+  <div class="sheet">
+    <h2>Nova entrada no bulário</h2>
+    <div class="field">
+      <label>Categoria</label>
+      <select id="fCategoria">
+        <option value="Fungicida">Fungicida</option>
+        <option value="Inseticida">Inseticida</option>
+        <option value="Acaricida">Acaricida</option>
+        <option value="Inseticida/Acaricida">Inseticida/Acaricida</option>
+        <option value="Fungicida/Acaricida">Fungicida/Acaricida</option>
+        <option value="Biológico">Biológico</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Produto (nome comercial)</label>
+      <input id="fProduto" type="text" placeholder="ex: Score">
+    </div>
+    <div class="field">
+      <label>Ingrediente ativo</label>
+      <input id="fIA" type="text" placeholder="ex: Difenoconazol">
+    </div>
+    <div class="field">
+      <label>Alvo (praga/doença)</label>
+      <input id="fAlvo" type="text" placeholder="ex: Pinta-preta">
+    </div>
+    <div class="field">
+      <label>Dose</label>
+      <input id="fDose" type="text" placeholder="ex: 50 mL/100L água">
+    </div>
+    <div class="field">
+      <label>Observação (opcional)</label>
+      <textarea id="fObs" rows="2" placeholder="ex: máx 3 aplicações, carência 3 dias"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
+      <button class="btn-save" onclick="salvar()">Salvar</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const STORAGE_KEY = 'bulario_estufa_v1';
+
+// ---------- Dados de partida (pesquisados em fontes oficiais: Agrofit/MAPA e bulas dos fabricantes) ----------
+const SEED = [
+  { categoria:'Fungicida', produto:'Metiltiofan', ia:'Tiofanato-metílico', usos:[
+    { alvo:'Doenças foliares (geral)', dose:'70–100 g/100L água (padrão para a maioria das culturas)', unsure:true, obs:'Dose específica para tomate não veio clara na bula — confirmar. Carência tomate: 14 dias.' }
+  ]},
+  { categoria:'Fungicida', produto:'Orthocide', ia:'Captana', usos:[
+    { alvo:'Requeima / Septoriose', dose:'240 g/100L água', unsure:false, obs:'300–600L calda/ha, até 6 aplicações/ciclo' },
+    { alvo:'Pinta-preta-pequena', dose:'700–1000 g/100L água', unsure:false, obs:'' }
+  ]},
+  { categoria:'Fungicida', produto:'Cercobin', ia:'Tiofanato-metílico', usos:[
+    { alvo:'Pinta-preta-pequena', dose:'90 g/100L água', unsure:false, obs:'Carência: 14 dias' }
+  ]},
+  { categoria:'Fungicida', produto:'Dithane', ia:'Mancozebe', usos:[
+    { alvo:'Pinta-preta / Requeima / Septoriose', dose:'confirmar dose exata na bula', unsure:true, obs:'Intervalo entre aplicações: 5–7 dias. Iniciar após transplante.' }
+  ]},
+  { categoria:'Fungicida', produto:'Score', ia:'Difenoconazol', usos:[
+    { alvo:'Pinta-preta / Septoriose', dose:'50 mL/100L água', unsure:false, obs:'200–800L calda/ha, máx 3 aplicações/safra, carência 3 dias' }
+  ]},
+  { categoria:'Fungicida', produto:'Amistar Top', ia:'Azoxistrobina + Difenoconazol', usos:[
+    { alvo:'Doenças foliares (geral)', dose:'confirmar dose exata (mL/ha) na bula', unsure:true, obs:'Volume de calda confirmado: 600–1000L água/ha' }
+  ]},
+  { categoria:'Fungicida', produto:'Cabrio Top', ia:'Metiram + Piraclostrobina', usos:[
+    { alvo:'Requeima / Pinta-preta', dose:'≈200 g/100L água (referência de ensaio, não é a dose oficial da bula)', unsure:true, obs:'Intervalo 7 dias, máx 5 aplicações/ciclo — confirmar dose oficial' }
+  ]},
+  { categoria:'Fungicida', produto:'Bravonil 720', ia:'Clorotalonil', usos:[
+    { alvo:'Doenças foliares (geral)', dose:'confirmar dose exata na bula', unsure:true, obs:'Não encontrei a tabela de doses por cultura' }
+  ]},
+  { categoria:'Fungicida', produto:'Maxim', ia:'Fludioxonil', usos:[
+    { alvo:'Tratamento de sementes (não é pulverização foliar)', dose:'não registrado para tomate/pepino via pulverização', unsure:true, obs:'Só registrado para tratamento de sementes de algodão, amendoim, batata-semente, feijão, milho e soja' }
+  ]},
+  { categoria:'Fungicida', produto:'Cobre Vermelho', ia:'Óxido cuproso / oxicloreto de cobre', usos:[
+    { alvo:'Requeima / Pinta-preta / bacterioses', dose:'≈2–3 g/L água (200–300 g/100L) — referência genérica de produtos cúpricos', unsure:true, obs:'Máx 4kg de cobre metálico/ha/ano somando todos os produtos cúpricos usados' }
+  ]},
+  { categoria:'Inseticida', produto:'Trigard', ia:'Ciromazina', usos:[
+    { alvo:'Mosca-minadora', dose:'≈15 g/100L água (padrão observado em batata/feijão)', unsure:true, obs:'Registrado para tomate e pepino — confirmar dose exata na bula' }
+  ]},
+  { categoria:'Acaricida', produto:'Abamectina', ia:'Abamectina', usos:[
+    { alvo:'Ácaro-rajado', dose:'18,75 mL/100L água', unsure:false, obs:'' },
+    { alvo:'Traça-do-tomateiro', dose:'20–25 mL/100L água', unsure:false, obs:'Máx 2 aplicações, intervalo 10 dias' }
+  ]},
+  { categoria:'Inseticida', produto:'Actara', ia:'Tiametoxam', usos:[
+    { alvo:'Mosca-branca', dose:'16–20 g/100L água', unsure:false, obs:'Máx 2 aplicações' },
+    { alvo:'Pulgão-verde', dose:'12–15 g/100L água', unsure:false, obs:'' }
+  ]},
+  { categoria:'Inseticida', produto:'Ampligo', ia:'Clorantraniliprole + Lambda-cialotrina', usos:[
+    { alvo:'Traça-do-tomateiro', dose:'20–30 mL/100L água', unsure:false, obs:'Volume 1000L/ha, intervalo 7 dias, máx 4 aplicações' },
+    { alvo:'Broca-pequena-do-tomateiro', dose:'30 mL/100L água', unsure:false, obs:'' }
+  ]},
+  { categoria:'Inseticida/Acaricida', produto:'Abelto Pro', ia:'possivelmente Ampligo Pro (Abamectina + Clorantraniliprole)', usos:[
+    { alvo:'—', dose:'não identifiquei esse nome de produto com certeza', unsure:true, obs:'Confirme o nome exato do rótulo — pode ser "Ampligo Pro" ou outro produto' }
+  ]},
+  { categoria:'Fungicida/Acaricida', produto:'Asgard', ia:'Fluazinam', usos:[
+    { alvo:'Requeima / doenças foliares', dose:'confirmar dose exata na bula', unsure:true, obs:'Atenção: é fungicida/acaricida, não inseticida puro' }
+  ]},
+  { categoria:'Inseticida/Acaricida', produto:'Oberon', ia:'Espiromesifeno', usos:[
+    { alvo:'Mosca-branca / Ácaro-rajado', dose:'confirmar dose exata (mL/100L) na bula', unsure:true, obs:'Iniciar 7–10 dias após emergência, repetir a cada 5–7 dias, máx 3 aplic/ciclo' }
+  ]},
+  { categoria:'Inseticida', produto:'Connect', ia:'Imidacloprido + Beta-ciflutrina', usos:[
+    { alvo:'Pragas sugadoras (geral)', dose:'confirmar dose exata na bula', unsure:true, obs:'Registrado para tomate' }
+  ]},
+  { categoria:'Inseticida', produto:'Lanate', ia:'Metomil', usos:[
+    { alvo:'Broca-pequena-do-tomateiro', dose:'confirmar dose exata na bula', unsure:true, obs:'' }
+  ]},
+  { categoria:'Inseticida', produto:'Verno', ia:'não identificado', usos:[
+    { alvo:'—', dose:'não consegui confirmar esse produto', unsure:true, obs:'Confira o nome exato no rótulo — pode ser "Vertimec" ou outro' }
+  ]},
+  { categoria:'Biológico', produto:'Dipel', ia:'Bacillus thuringiensis (var. kurstaki)', usos:[
+    { alvo:'Traça-do-tomateiro', dose:'100–150 mL/100L água', unsure:false, obs:'Biológico — sem carência. Aplicações preventivas semanais.' }
+  ]},
+  { categoria:'Inseticida/Acaricida', produto:'Minecto Pro', ia:'Ciantraniliprole + Abamectina', usos:[
+    { alvo:'Ácaro-rajado (referência de outras culturas)', dose:'25–50 mL/100L água', unsure:true, obs:'Confirmar dose exata pra tomate. Limite: 300g i.a. ciantraniliprole/ha/ciclo' }
+  ]},
+  { categoria:'Fungicida', produto:'Torero', ia:'Mancozebe + Cimoxanil', usos:[
+    { alvo:'Míldio', dose:'confirmar dose exata na bula', unsure:true, obs:'Atenção: é fungicida (não inseticida)' }
+  ]},
+  { categoria:'Inseticida', produto:'Pirate', ia:'Clorfenapir', usos:[
+    { alvo:'Traça-do-tomateiro / brocas / ácaros', dose:'25–50 mL/100L água', unsure:false, obs:'Máx 3 aplicações/ciclo, intervalo mín. 7 dias' }
+  ]},
+];
+
+function carregarDados(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{ return JSON.parse(raw); }catch(e){}
+  }
+  return null;
+}
+function salvarDados(dados){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+}
+
+let dados = carregarDados();
+if(!dados){
+  dados = SEED.map((p,i) => ({...p, id:'p'+i, usos: p.usos.map((u,j) => ({...u, id:'p'+i+'_u'+j}))}));
+  salvarDados(dados);
+}
+
+let filtroCategoria = 'todas';
+
+function categorias(){
+  const set = new Set(dados.map(p => p.categoria));
+  return ['todas', ...Array.from(set)];
+}
+
+function renderFiltros(){
+  const el = document.getElementById('filtros');
+  el.innerHTML = categorias().map(c =>
+    `<div class="chip ${c===filtroCategoria?'active':''}" onclick="setFiltro('${c}')">${c==='todas'?'Todas':c}</div>`
+  ).join('');
+}
+function setFiltro(c){ filtroCategoria = c; render(); }
+
+function catClass(cat){
+  if(cat.includes('Fungicida') && cat.includes('Acaricida')) return 'cat-mix';
+  if(cat.includes('Fungicida')) return 'cat-fungicida';
+  if(cat.includes('Inseticida') && cat.includes('Acaricida')) return 'cat-mix';
+  if(cat.includes('Inseticida')) return 'cat-inseticida';
+  if(cat.includes('Acaricida')) return 'cat-acaricida';
+  return 'cat-mix';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(){
+  renderFiltros();
+  const termo = document.getElementById('busca').value.trim().toLowerCase();
+  let itens = dados;
+  if(filtroCategoria !== 'todas') itens = itens.filter(p => p.categoria === filtroCategoria);
+  if(termo){
+    itens = itens.filter(p =>
+      p.produto.toLowerCase().includes(termo) ||
+      p.ia.toLowerCase().includes(termo) ||
+      p.usos.some(u => u.alvo.toLowerCase().includes(termo))
+    );
+  }
+  itens = itens.slice().sort((a,b) => a.produto.localeCompare(b.produto));
+
+  const list = document.getElementById('list');
+  if(itens.length === 0){
+    list.innerHTML = `
+      <div class="alert"><strong>⚠ Sobre os dados deste bulário</strong>
+      Comecei a partir de bulas oficiais (Agrofit/MAPA e fabricantes), mas algumas doses eu não consegui confirmar com certeza — essas ficam marcadas em laranja com "confirmar". Edite direto aqui quando checar a bula impressa do produto.</div>
+      <div class="empty">Nada encontrado.</div>`;
+    return;
+  }
+
+  const avisoHtml = `
+    <div class="alert"><strong>⚠ Sobre os dados deste bulário</strong>
+    Comecei a partir de bulas oficiais (Agrofit/MAPA e fabricantes), mas algumas doses eu não consegui confirmar com certeza — essas ficam marcadas em laranja com "confirmar". Também encontrei 3 produtos que pareciam classificados errado na sua lista original: <b>Influx</b> e <b>Verdavis</b> são inseticidas/acaricidas (não fungicidas), e <b>Torero</b> é fungicida (não inseticida). Edite direto aqui quando checar a bula impressa do produto.</div>`;
+
+  list.innerHTML = avisoHtml + itens.map(p => `
+    <div class="card">
+      <div class="card-top">
+        <h3>${escapeHtml(p.produto)}</h3>
+        <span class="cat ${catClass(p.categoria)}">${escapeHtml(p.categoria)}</span>
+      </div>
+      <div class="ia">${escapeHtml(p.ia)}</div>
+      <div class="usos">
+        ${p.usos.map(u => `
+          <div class="uso">
+            <div class="alvo">${escapeHtml(u.alvo)}</div>
+            <div class="dose ${u.unsure ? 'unsure':''}">${escapeHtml(u.dose)}${u.unsure ? '<span class="tag-unsure">CONFIRMAR</span>' : ''}</div>
+            ${u.obs ? `<div class="obs">${escapeHtml(u.obs)}</div>` : ''}
+            <div class="uso-actions">
+              <button onclick="editarUso('${p.id}','${u.id}')">Editar</button>
+              <button class="del" onclick="excluirUso('${p.id}','${u.id}')">Excluir</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+let editando = null; // {produtoId, usoId} ou null se for novo
+
+function openForm(produtoId, usoId){
+  editando = produtoId ? {produtoId, usoId} : null;
+  document.getElementById('fCategoria').value = 'Fungicida';
+  document.getElementById('fProduto').value = '';
+  document.getElementById('fIA').value = '';
+  document.getElementById('fAlvo').value = '';
+  document.getElementById('fDose').value = '';
+  document.getElementById('fObs').value = '';
+
+  if(produtoId){
+    const p = dados.find(x => x.id === produtoId);
+    const u = p.usos.find(x => x.id === usoId);
+    document.getElementById('fCategoria').value = p.categoria;
+    document.getElementById('fProduto').value = p.produto;
+    document.getElementById('fIA').value = p.ia;
+    document.getElementById('fAlvo').value = u.alvo;
+    document.getElementById('fDose').value = u.dose;
+    document.getElementById('fObs').value = u.obs || '';
+  }
+  document.getElementById('dialog').showModal();
+}
+function closeForm(){ document.getElementById('dialog').close(); }
+
+function editarUso(produtoId, usoId){ openForm(produtoId, usoId); }
+
+function excluirUso(produtoId, usoId){
+  if(!confirm('Excluir esta entrada?')) return;
+  const p = dados.find(x => x.id === produtoId);
+  p.usos = p.usos.filter(u => u.id !== usoId);
+  if(p.usos.length === 0) dados = dados.filter(x => x.id !== produtoId);
+  salvarDados(dados);
+  render();
+}
+
+function salvar(){
+  const categoria = document.getElementById('fCategoria').value;
+  const produtoNome = document.getElementById('fProduto').value.trim();
+  const ia = document.getElementById('fIA').value.trim();
+  const alvo = document.getElementById('fAlvo').value.trim();
+  const dose = document.getElementById('fDose').value.trim();
+  const obs = document.getElementById('fObs').value.trim();
+
+  if(!produtoNome || !alvo || !dose){
+    alert('Preencha ao menos Produto, Alvo e Dose.');
+    return;
+  }
+
+  if(editando){
+    const p = dados.find(x => x.id === editando.produtoId);
+    const u = p.usos.find(x => x.id === editando.usoId);
+    p.categoria = categoria; p.produto = produtoNome; p.ia = ia;
+    u.alvo = alvo; u.dose = dose; u.obs = obs; u.unsure = false;
+  } else {
+    // tenta juntar com produto existente de mesmo nome
+    let p = dados.find(x => x.produto.toLowerCase() === produtoNome.toLowerCase());
+    const novoUso = { id: 'u'+Date.now(), alvo, dose, obs, unsure:false };
+    if(p){
+      p.usos.push(novoUso);
+    } else {
+      dados.push({ id:'p'+Date.now(), categoria, produto:produtoNome, ia, usos:[novoUso] });
+    }
+  }
+  salvarDados(dados);
+  closeForm();
+  render();
+}
+
+render();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
