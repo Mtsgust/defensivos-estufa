@@ -4,19 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Pulverizações</title>
+<link rel="manifest" href="manifest-pulverizacoes.json">
+<meta name="theme-color" content="#173425">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pulverizações">
+<link rel="apple-touch-icon" href="icon-pulv-180.png">
+<link rel="icon" href="icon-pulv-192.png">
 <style>
   :root{
-    --bg:#F2F5EF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
-    --paper:#FFFFFF; --line:#DCE3D8; --pend:#C68A2E; --feito:#3D7A5C; --danger:#B5432F;
+    --bg:#EFEFEF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --paper:#FFFFFF; --line:#DCE3D8; --feito:#3D7A5C; --danger:#B5432F;
   }
   *{box-sizing:border-box;}
   body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding-bottom:100px;}
   header{background:var(--leaf-dark); color:#fff; padding:16px 20px 20px; position:sticky; top:0; z-index:5;}
-  header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
   header h1{margin:6px 0 0; font-size:20px;}
-  .tabs{display:flex; gap:8px; margin:14px 20px 0;}
-  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer;}
-  .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
   main{padding:16px 20px;}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
   .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
@@ -25,19 +29,14 @@
     font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; font-weight:600;
     background:var(--leaf); color:#fff; padding:3px 9px; border-radius:6px; white-space:nowrap;
   }
-  .status{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
-  .status.pendente{background:#FBEBD3; color:var(--pend);}
-  .status.feito{background:#DCEFE3; color:var(--feito);}
-  .status.atrasado{background:#F7DAD2; color:var(--danger);}
-  .group-header{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#6C7A67; margin:22px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--line);}
-  .group-header:first-child{margin-top:0;}
   .item h3{margin:8px 0 2px; font-size:16px;}
   .item p{margin:0; font-size:13px; color:#54614F;}
   .item .meta{font-size:12px; color:#8A968A; margin-top:6px;}
   .item .actions{display:flex; gap:8px; margin-top:10px;}
   .item button{flex:1; border:none; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600;}
-  .btn-done{background:var(--feito); color:#fff;}
   .btn-del{background:transparent; color:var(--danger); border:1px solid var(--danger) !important;}
+  .group-header{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:#6C7A67; margin:22px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--line);}
+  .group-header:first-child{margin-top:0;}
   .fab{
     position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto;
     background:var(--leaf); color:#fff; border:none; border-radius:14px; padding:16px;
@@ -45,7 +44,7 @@
   }
   dialog{border:none; border-radius:16px; width:min(92vw,420px); padding:0;}
   dialog::backdrop{background:rgba(23,52,37,.45);}
-  .sheet{padding:20px;}
+  .sheet{padding:20px; max-height:85vh; overflow-y:auto;}
   .sheet h2{margin:0 0 16px; font-size:18px;}
   .field{margin-bottom:12px;}
   .field label{display:block; font-size:12px; color:#54614F; margin-bottom:5px;}
@@ -59,25 +58,86 @@
   .btn-cancel{background:#EDEFEA; color:var(--ink);}
   .btn-save{background:var(--leaf); color:#fff;}
   .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
+
+  .view-toggle{display:flex; gap:8px; margin:14px 20px 0;}
+  .view-btn{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; font-weight:600; background:rgba(255,255,255,.08); color:#CFE0D3; border:1px solid rgba(255,255,255,.18); cursor:pointer;}
+  .view-btn.active{background:#fff; color:var(--leaf-dark);}
+
+  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin:16px 20px 4px;}
+  .cal-nav button{background:var(--paper); border:1px solid var(--line); border-radius:8px; width:36px; height:36px; font-size:16px; color:var(--leaf-dark);}
+  .cal-nav .cal-title{font-size:15px; font-weight:600; text-transform:capitalize;}
+  .cal-legend{display:flex; flex-wrap:wrap; row-gap:4px; gap:10px 14px; margin:0 20px 10px; font-size:11px; color:#6C7A67;}
+  .cal-legend span{display:inline-flex; align-items:center; gap:4px;}
+  .cal-legend i{width:7px; height:7px; border-radius:50%; display:inline-block;}
+  .dot-feito{background:var(--feito);}
+
+  .cal-grid{padding:0 20px; }
+  .cal-weekdays{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); text-align:center; font-size:11px; color:#8A968A; margin-bottom:4px;}
+  .cal-days{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:5px;}
+  .cal-day{
+    position:relative; width:100%; padding-top:100%; border-radius:10px; background:var(--paper); border:1px solid var(--line);
+    font-size:13px; cursor:pointer; min-width:0; overflow:hidden;
+  }
+  .cal-day.empty{background:transparent; border:none; cursor:default;}
+  .cal-day.today{border:2px solid var(--leaf);}
+  .cal-day .day-inner{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  }
+  .cal-day .dots{display:flex; gap:2px;}
+  .cal-day .dots i{width:5px; height:5px; border-radius:50%; display:inline-block; box-sizing:border-box;}
+
+  .day-item{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px;}
+  .day-item h4{margin:2px 0; font-size:14px;}
+  .day-item p{margin:0; font-size:12px; color:#54614F;}
+  .day-item .row{display:flex; gap:8px; margin-top:8px;}
+  .day-item .row button{flex:1; border:none; border-radius:7px; padding:7px 0; font-size:12px; font-weight:600;}
 </style>
 </head>
 <body>
 <header>
-  <a href="index.html">‹ voltar</a>
   <h1>Pulverizações</h1>
-  <div class="tabs">
-    <div class="tab active" data-f="pendente">Pendentes</div>
-    <div class="tab" data-f="feito">Feitas</div>
-    <div class="tab" data-f="todas">Todas</div>
+  <div class="view-toggle">
+    <div class="view-btn active" data-v="lista">Lista</div>
+    <div class="view-btn" data-v="calendario">Calendário</div>
   </div>
 </header>
-<main id="list"><div class="loading">Carregando…</div></main>
 
-<button class="fab" onclick="openForm()">+ Nova pulverização</button>
+<main id="viewLista"><div id="list"><div class="loading">Carregando…</div></div></main>
+
+<main id="viewCalendario" style="display:none;">
+  <div class="cal-nav">
+    <button onclick="mudarMes(-1)">‹</button>
+    <div class="cal-title" id="calTitle"></div>
+    <button onclick="mudarMes(1)">›</button>
+  </div>
+  <div class="cal-legend">
+    <span><i class="dot-feito"></i>Pulverizado</span>
+  </div>
+  <div class="cal-grid">
+    <div class="cal-weekdays">
+      <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+    </div>
+    <div class="cal-days" id="calDays"></div>
+  </div>
+</main>
+
+<button class="fab" onclick="openForm()">+ Registrar pulverização</button>
+
+<dialog id="dayDialog">
+  <div class="sheet">
+    <h2 id="dayDlgTitle">Dia</h2>
+    <div id="dayDlgList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="closeDayDialog()">Fechar</button>
+      <button class="btn-save" onclick="novaTarefaNoDia()">+ Registrar nesse dia</button>
+    </div>
+  </div>
+</dialog>
 
 <dialog id="dialog">
   <div class="sheet">
-    <h2 id="dlgTitle">Nova pulverização</h2>
+    <h2 id="dlgTitle">Registrar pulverização</h2>
+    <p style="font-size:12px; color:#8A968A; margin:-6px 0 12px;">Lance aqui o que já foi aplicado.</p>
     <div class="row2">
       <div class="field">
         <label>Estufa</label>
@@ -89,11 +149,8 @@
         </select>
       </div>
       <div class="field">
-        <label>Situação</label>
-        <select id="fStatus">
-          <option value="pendente">Precisa fazer</option>
-          <option value="feito">Já foi feito</option>
-        </select>
+        <label>Data da aplicação</label>
+        <input id="fData" type="date">
       </div>
     </div>
     <div class="field">
@@ -105,16 +162,8 @@
       <input id="fAlvo" type="text" placeholder="ex: requeima, mosca branca...">
     </div>
     <div class="field">
-      <label>Dose</label>
-      <input id="fDose" type="text" placeholder="ex: 100ml/20L">
-    </div>
-    <div class="field">
-      <label>Data (prevista ou feita)</label>
-      <input id="fData" type="date">
-    </div>
-    <div class="field">
       <label>Observação</label>
-      <textarea id="fObs" rows="2"></textarea>
+      <textarea id="fObs" rows="3" placeholder="Escreva o que quiser: dose, quantidade, condição do tempo, etc."></textarea>
     </div>
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="closeForm()">Cancelar</button>
@@ -126,44 +175,36 @@
 <script src="config.js"></script>
 <script>
 let dados = [];
-let filtro = 'pendente';
+let view = 'lista';
+let calRefDate = new Date();
+let diaDialogAtual = null;
 
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
   try{
     const r = await fetch(`${API_URL}?tipo=pulverizacao`);
     const j = await r.json();
-    dados = (j.data || []).sort((a,b)=> new Date(b.dataCriacao) - new Date(a.dataCriacao));
+    // só interessa o que já foi de fato aplicado (tem data de execução)
+    dados = (j.data || []).filter(d => d.dataExecucao)
+      .sort((a,b)=> new Date(b.dataExecucao) - new Date(a.dataExecucao));
     render();
+    renderCalendario();
   }catch(e){
     document.getElementById('list').innerHTML = '<div class="loading">Erro ao carregar. Confira a URL em config.js.</div>';
   }
 }
 
-function isAtrasado(d){
-  if(d.status === 'feito' || !d.dataPrevista) return false;
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const dt = new Date(d.dataPrevista + 'T00:00:00');
-  return dt < hoje;
-}
-
 function itemCard(d){
-  const atrasado = isAtrasado(d);
-  const statusLabel = d.status === 'feito' ? 'Feito' : (atrasado ? 'Atrasado' : 'Pendente');
-  const statusClass = d.status === 'feito' ? 'feito' : (atrasado ? 'atrasado' : 'pendente');
   return `
     <div class="item">
       <div class="item-top">
         <span class="badge">Estufa ${d.estufa}</span>
-        <span class="status ${statusClass}">${statusLabel}</span>
       </div>
       <h3>${escapeHtml(d.produto || '(produto não informado)')}</h3>
       ${d.alvo ? `<p>Alvo: ${escapeHtml(d.alvo)}</p>` : ''}
-      ${d.dose ? `<p>Dose: ${escapeHtml(d.dose)}</p>` : ''}
       ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
-      <div class="meta">${d.status === 'feito' ? (d.dataExecucao ? 'Feito em ' + fmtData(d.dataExecucao) : '') : (d.dataPrevista ? 'Previsto para ' + fmtData(d.dataPrevista) : 'Sem data definida')}</div>
+      <div class="meta">Aplicado em ${fmtData(d.dataExecucao)}</div>
       <div class="actions">
-        ${d.status !== 'feito' ? `<button class="btn-done" onclick="marcarFeito('${d.id}')">Marcar como feito</button>` : ''}
         <button class="btn-del" onclick="excluir('${d.id}')">Excluir</button>
       </div>
     </div>
@@ -172,33 +213,17 @@ function itemCard(d){
 
 function render(){
   const list = document.getElementById('list');
-  let itens = dados;
-  if(filtro !== 'todas') itens = dados.filter(d => d.status === filtro);
-  if(itens.length === 0){
-    list.innerHTML = '<div class="empty">Nada por aqui.</div>';
+  if(dados.length === 0){
+    list.innerHTML = '<div class="empty">Nenhuma pulverização registrada ainda.</div>';
     return;
   }
-
-  if(filtro === 'feito'){
-    itens = itens.slice().sort((a,b) => new Date(b.dataExecucao||b.dataCriacao) - new Date(a.dataExecucao||a.dataCriacao));
-    list.innerHTML = itens.map(itemCard).join('');
-    return;
-  }
-
-  // pendentes (e "todas"): agrupa por data prevista, mais próxima primeiro
-  itens = itens.slice().sort((a,b) => {
-    if(!a.dataPrevista) return 1;
-    if(!b.dataPrevista) return -1;
-    return new Date(a.dataPrevista) - new Date(b.dataPrevista);
-  });
   let html = '';
   let grupoAtual = null;
-  itens.forEach(d => {
-    const chave = d.dataPrevista || 'sem-data';
+  dados.forEach(d => {
+    const chave = d.dataExecucao.slice(0,10);
     if(chave !== grupoAtual){
       grupoAtual = chave;
-      const titulo = d.dataPrevista ? fmtData(d.dataPrevista) : 'Sem data definida';
-      html += `<div class="group-header">${titulo}</div>`;
+      html += `<div class="group-header">${fmtData(chave)}</div>`;
     }
     html += itemCard(d);
   });
@@ -214,32 +239,105 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  t.classList.add('active');
-  filtro = t.dataset.f;
-  render();
+document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.view-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  view = b.dataset.v;
+  const isLista = view === 'lista';
+  document.getElementById('viewLista').style.display = isLista ? '' : 'none';
+  document.getElementById('viewCalendario').style.display = isLista ? 'none' : '';
+  if(!isLista) renderCalendario();
 }));
+
+// --- Calendário ---
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function mudarMes(delta){
+  calRefDate = new Date(calRefDate.getFullYear(), calRefDate.getMonth() + delta, 1);
+  renderCalendario();
+}
+
+function renderCalendario(){
+  const ano = calRefDate.getFullYear();
+  const mes = calRefDate.getMonth();
+  document.getElementById('calTitle').textContent = `${MESES[mes]} ${ano}`;
+
+  const porDia = {};
+  dados.forEach(d => {
+    const iso = d.dataExecucao.slice(0,10);
+    (porDia[iso] = porDia[iso] || []).push(d);
+  });
+
+  const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
+  const totalDias = new Date(ano, mes + 1, 0).getDate();
+  const hojeIso = hojeISO();
+
+  let html = '';
+  for(let i = 0; i < primeiroDiaSemana; i++){
+    html += `<div class="cal-day empty"></div>`;
+  }
+  for(let dia = 1; dia <= totalDias; dia++){
+    const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const temItem = (porDia[iso] || []).length > 0;
+    html += `<div class="cal-day ${iso===hojeIso?'today':''}" onclick="abrirDia('${iso}')">
+      <div class="day-inner">
+        <span>${dia}</span>
+        <span class="dots">${temItem ? '<i class="dot-feito"></i>' : ''}</span>
+      </div>
+    </div>`;
+  }
+  document.getElementById('calDays').innerHTML = html;
+}
+
+function abrirDia(iso){
+  diaDialogAtual = iso;
+  const itens = dados.filter(d => d.dataExecucao.slice(0,10) === iso);
+  const dt = new Date(iso + 'T00:00:00');
+  document.getElementById('dayDlgTitle').textContent = dt.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'});
+
+  if(itens.length === 0){
+    document.getElementById('dayDlgList').innerHTML = '<p style="color:#8A968A; font-size:13px;">Nada registrado para esse dia.</p>';
+  } else {
+    document.getElementById('dayDlgList').innerHTML = itens.map(d => `
+        <div class="day-item">
+          <div class="item-top">
+            <span class="badge">Estufa ${d.estufa}</span>
+          </div>
+          <h4>${escapeHtml(d.produto || '(produto não informado)')}</h4>
+          ${d.alvo ? `<p>Alvo: ${escapeHtml(d.alvo)}</p>` : ''}
+          ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
+          <div class="row">
+            <button class="btn-del" onclick="excluir('${d.id}').then(()=>abrirDia('${iso}'))">Excluir</button>
+          </div>
+        </div>
+      `).join('');
+  }
+  document.getElementById('dayDialog').showModal();
+}
+
+function closeDayDialog(){ document.getElementById('dayDialog').close(); }
+
+function novaTarefaNoDia(){
+  closeDayDialog();
+  openForm(diaDialogAtual);
+}
 
 function hojeISO(){
   const d = new Date();
   return d.toISOString().slice(0,10);
 }
 
-function openForm(){
+function openForm(dataPreDefinida){
   document.getElementById('fEstufa').value='1';
-  document.getElementById('fStatus').value='pendente';
   document.getElementById('fProduto').value='';
   document.getElementById('fAlvo').value='';
-  document.getElementById('fDose').value='';
-  document.getElementById('fData').value=hojeISO();
+  document.getElementById('fData').value = dataPreDefinida || hojeISO();
   document.getElementById('fObs').value='';
   document.getElementById('dialog').showModal();
 }
 function closeForm(){ document.getElementById('dialog').close(); }
 
 async function salvar(){
-  const status = document.getElementById('fStatus').value;
   const data = document.getElementById('fData').value;
   const payload = {
     tipo: 'pulverizacao',
@@ -248,33 +346,28 @@ async function salvar(){
       estufa: document.getElementById('fEstufa').value,
       produto: document.getElementById('fProduto').value,
       alvo: document.getElementById('fAlvo').value,
-      dose: document.getElementById('fDose').value,
       obs: document.getElementById('fObs').value,
-      status: status,
-      dataPrevista: status === 'pendente' ? data : '',
-      dataExecucao: status === 'feito' ? data : ''
+      status: 'feito',
+      dataPrevista: '',
+      dataExecucao: data
     }
   };
   closeForm();
   await fetch(API_URL, {method:'POST', body: JSON.stringify(payload)});
-  carregar();
-}
-
-async function marcarFeito(id){
-  await fetch(API_URL, {method:'POST', body: JSON.stringify({
-    tipo:'pulverizacao', action:'update', id,
-    data:{ status:'feito', dataExecucao: hojeISO() }
-  })});
-  carregar();
+  await carregar();
 }
 
 async function excluir(id){
   if(!confirm('Excluir este registro?')) return;
   await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'delete', id})});
-  carregar();
+  await carregar();
 }
 
 carregar();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
