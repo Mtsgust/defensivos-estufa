@@ -77,10 +77,11 @@
   .cal-nav{display:flex; align-items:center; justify-content:space-between; margin:16px 20px 4px;}
   .cal-nav button{background:var(--paper); border:1px solid var(--line); border-radius:8px; width:36px; height:36px; font-size:16px; color:var(--leaf-dark);}
   .cal-nav .cal-title{font-size:15px; font-weight:600; text-transform:capitalize;}
-  .cal-legend{display:flex; gap:14px; margin:0 20px 10px; font-size:11px; color:#6C7A67;}
+  .cal-legend{display:flex; flex-wrap:wrap; row-gap:4px; gap:10px 14px; margin:0 20px 10px; font-size:11px; color:#6C7A67;}
   .cal-legend span{display:inline-flex; align-items:center; gap:4px;}
   .cal-legend i{width:7px; height:7px; border-radius:50%; display:inline-block;}
   .dot-pend{background:var(--pend);} .dot-feito{background:var(--feito);} .dot-atrasado{background:var(--danger);}
+  .dot-previsto-cumprido{background:transparent; border:1.3px solid var(--feito);}
 
   .cal-grid{padding:0 20px; }
   .cal-weekdays{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); text-align:center; font-size:11px; color:#8A968A; margin-bottom:4px;}
@@ -95,7 +96,7 @@
     position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
   }
   .cal-day .dots{display:flex; gap:2px;}
-  .cal-day .dots i{width:5px; height:5px; border-radius:50%; display:inline-block;}
+  .cal-day .dots i{width:5px; height:5px; border-radius:50%; display:inline-block; box-sizing:border-box;}
 
   .day-item{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px;}
   .day-item .top{display:flex; justify-content:space-between; align-items:center; gap:8px;}
@@ -132,6 +133,7 @@
     <span><i class="dot-pend"></i>Pendente</span>
     <span><i class="dot-atrasado"></i>Atrasado</span>
     <span><i class="dot-feito"></i>Feito</span>
+    <span><i class="dot-previsto-cumprido"></i>Previsto (feito em outro dia)</span>
   </div>
   <div class="cal-grid">
     <div class="cal-weekdays">
@@ -329,9 +331,26 @@ function mudarMes(delta){
   renderCalendario();
 }
 
-function dataChaveDoItem(d){
-  // usa a data prevista para pendentes/atrasados, e a data de execução para feitos
-  return d.status === 'feito' ? d.dataExecucao : d.dataPrevista;
+function datasDoItem(d){
+  // retorna uma entrada por dia relevante do item: pode ser 1 (caso simples)
+  // ou 2 (quando foi previsto num dia e feito em outro)
+  const prevIso = d.dataPrevista ? d.dataPrevista.slice(0,10) : null;
+  const execIso = d.dataExecucao ? d.dataExecucao.slice(0,10) : null;
+  const out = [];
+
+  if(d.status === 'feito'){
+    if(prevIso && prevIso !== execIso){
+      out.push({ iso: prevIso, tipo: 'previsto-cumprido' });
+    }
+    if(execIso){
+      out.push({ iso: execIso, tipo: 'feito' });
+    } else if(prevIso){
+      out.push({ iso: prevIso, tipo: 'feito' });
+    }
+  } else if(prevIso){
+    out.push({ iso: prevIso, tipo: isAtrasado(d) ? 'atrasado' : 'pendente' });
+  }
+  return out;
 }
 
 function renderCalendario(){
@@ -341,10 +360,9 @@ function renderCalendario(){
 
   const porDia = {};
   dados.forEach(d => {
-    const chave = dataChaveDoItem(d);
-    if(!chave) return;
-    const iso = chave.slice(0,10);
-    (porDia[iso] = porDia[iso] || []).push(d);
+    datasDoItem(d).forEach(({iso, tipo}) => {
+      (porDia[iso] = porDia[iso] || []).push({item: d, tipo});
+    });
   });
 
   const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
@@ -358,13 +376,12 @@ function renderCalendario(){
   for(let dia = 1; dia <= totalDias; dia++){
     const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
     const itens = porDia[iso] || [];
-    const temPend = itens.some(d => d.status !== 'feito' && !isAtrasado(d));
-    const temAtrasado = itens.some(d => d.status !== 'feito' && isAtrasado(d));
-    const temFeito = itens.some(d => d.status === 'feito');
+    const tipos = new Set(itens.map(x => x.tipo));
     let dots = '';
-    if(temAtrasado) dots += '<i class="dot-atrasado"></i>';
-    if(temPend) dots += '<i class="dot-pend"></i>';
-    if(temFeito) dots += '<i class="dot-feito"></i>';
+    if(tipos.has('atrasado')) dots += '<i class="dot-atrasado"></i>';
+    if(tipos.has('pendente')) dots += '<i class="dot-pend"></i>';
+    if(tipos.has('feito')) dots += '<i class="dot-feito"></i>';
+    if(tipos.has('previsto-cumprido')) dots += '<i class="dot-previsto-cumprido"></i>';
     html += `<div class="cal-day ${iso===hojeIso?'today':''}" onclick="abrirDia('${iso}')">
       <div class="day-inner">
         <span>${dia}</span>
@@ -377,17 +394,28 @@ function renderCalendario(){
 
 function abrirDia(iso){
   diaDialogAtual = iso;
-  const itens = dados.filter(d => dataChaveDoItem(d) && dataChaveDoItem(d).slice(0,10) === iso);
+  const itens = [];
+  dados.forEach(d => {
+    datasDoItem(d).forEach(({iso: itemIso, tipo}) => {
+      if(itemIso === iso) itens.push({item: d, tipo});
+    });
+  });
   const dt = new Date(iso + 'T00:00:00');
   document.getElementById('dayDlgTitle').textContent = dt.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'});
 
   if(itens.length === 0){
     document.getElementById('dayDlgList').innerHTML = '<p style="color:#8A968A; font-size:13px;">Nada lançado para esse dia.</p>';
   } else {
-    document.getElementById('dayDlgList').innerHTML = itens.map(d => {
-      const atrasado = isAtrasado(d);
-      const statusLabel = d.status === 'feito' ? 'Feito' : (atrasado ? 'Atrasado' : 'Pendente');
-      const statusClass = d.status === 'feito' ? 'feito' : (atrasado ? 'atrasado' : 'pendente');
+    document.getElementById('dayDlgList').innerHTML = itens.map(({item: d, tipo}) => {
+      const labels = { pendente:'Pendente', atrasado:'Atrasado', feito:'Feito', 'previsto-cumprido':'Feito' };
+      const classes = { pendente:'pendente', atrasado:'atrasado', feito:'feito', 'previsto-cumprido':'feito' };
+      const statusLabel = labels[tipo];
+      const statusClass = classes[tipo];
+      const nota = tipo === 'previsto-cumprido'
+        ? `<p style="color:#8A968A;">Estava previsto pra hoje — foi feito em ${fmtData(d.dataExecucao)}</p>`
+        : (tipo === 'feito' && d.dataPrevista && d.dataPrevista.slice(0,10) !== iso
+            ? `<p style="color:#8A968A;">Previsto originalmente pra ${fmtData(d.dataPrevista)}</p>`
+            : '');
       return `
         <div class="day-item">
           <div class="top">
@@ -397,6 +425,7 @@ function abrirDia(iso){
           <h4>${escapeHtml(d.produto || '(insumo não informado)')}</h4>
           ${d.dose ? `<p>Dose: ${escapeHtml(d.dose)}</p>` : ''}
           ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
+          ${nota}
           <div class="row">
             ${d.status !== 'feito'
               ? `<button class="btn-done" onclick="marcarFeito('${d.id}').then(()=>abrirDia('${iso}'))">Marcar como feito</button>`
