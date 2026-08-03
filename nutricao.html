@@ -4,17 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Nutrição</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#173425">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Nutrição">
-<link rel="apple-touch-icon" href="icon-180.png?v=2">
-<link rel="icon" href="icon-192.png?v=2">
 <style>
   :root{
-    --bg:#EFEFEF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --bg:#F2F5EF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
     --paper:#FFFFFF; --line:#DCE3D8; --pend:#C68A2E; --feito:#3D7A5C; --danger:#B5432F;
   }
   *{box-sizing:border-box;}
@@ -23,7 +15,7 @@
   header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
   header h1{margin:6px 0 0; font-size:20px;}
   .tabs{display:flex; gap:8px; margin:14px 20px 0;}
-  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); color:var(--ink); border:1px solid var(--line); cursor:pointer;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer;}
   .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
   main{padding:16px 20px;}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
@@ -69,92 +61,21 @@
   .btn-save{background:var(--leaf); color:#fff;}
   .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
   .hint{font-size:12px; color:#8A968A; margin:-6px 0 12px;}
-
-  .view-toggle{display:flex; gap:8px; margin:14px 20px 0;}
-  .view-btn{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; font-weight:600; background:rgba(255,255,255,.08); color:#CFE0D3; border:1px solid rgba(255,255,255,.18); cursor:pointer;}
-  .view-btn.active{background:#fff; color:var(--leaf-dark);}
-
-  .cal-nav{display:flex; align-items:center; justify-content:space-between; margin:16px 20px 4px;}
-  .cal-nav button{background:var(--paper); border:1px solid var(--line); border-radius:8px; width:36px; height:36px; font-size:16px; color:var(--leaf-dark);}
-  .cal-nav .cal-title{font-size:15px; font-weight:600; text-transform:capitalize;}
-  .cal-legend{display:flex; flex-wrap:wrap; row-gap:4px; gap:10px 14px; margin:0 20px 10px; font-size:11px; color:#6C7A67;}
-  .cal-legend span{display:inline-flex; align-items:center; gap:4px;}
-  .cal-legend i{width:7px; height:7px; border-radius:50%; display:inline-block;}
-  .dot-pend{background:var(--pend);} .dot-feito{background:var(--feito);} .dot-atrasado{background:var(--danger);}
-  .dot-previsto-cumprido{background:transparent; border:1.3px solid var(--feito);}
-
-  .cal-grid{padding:0 20px; }
-  .cal-weekdays{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); text-align:center; font-size:11px; color:#8A968A; margin-bottom:4px;}
-  .cal-days{display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:5px;}
-  .cal-day{
-    position:relative; width:100%; padding-top:100%; border-radius:10px; background:var(--paper); border:1px solid var(--line);
-    font-size:13px; cursor:pointer; min-width:0; overflow:hidden;
-  }
-  .cal-day.empty{background:transparent; border:none; cursor:default;}
-  .cal-day.today{border:2px solid var(--leaf);}
-  .cal-day .day-inner{
-    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
-  }
-  .cal-day .dots{display:flex; gap:2px;}
-  .cal-day .dots i{width:5px; height:5px; border-radius:50%; display:inline-block; box-sizing:border-box;}
-
-  .day-item{background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:8px;}
-  .day-item .top{display:flex; justify-content:space-between; align-items:center; gap:8px;}
-  .day-item h4{margin:2px 0; font-size:14px;}
-  .day-item p{margin:0; font-size:12px; color:#54614F;}
-  .day-item .row{display:flex; gap:8px; margin-top:8px;}
-  .day-item .row button{flex:1; border:none; border-radius:7px; padding:7px 0; font-size:12px; font-weight:600;}
-  .btn-undo{background:#EDEFEA; color:var(--ink);}
 </style>
 </head>
 <body>
 <header>
+  <a href="index.html">‹ voltar</a>
   <h1>Nutrição</h1>
-  <div class="view-toggle">
-    <div class="view-btn active" data-v="lista">Lista</div>
-    <div class="view-btn" data-v="calendario">Calendário</div>
-  </div>
-  <div class="tabs" id="tabsLista">
+  <div class="tabs">
     <div class="tab active" data-f="pendente">Pendentes</div>
     <div class="tab" data-f="feito">Feitas</div>
     <div class="tab" data-f="todas">Todas</div>
   </div>
 </header>
-
-<main id="viewLista"><div id="list"><div class="loading">Carregando…</div></div></main>
-
-<main id="viewCalendario" style="display:none;">
-  <div class="cal-nav">
-    <button onclick="mudarMes(-1)">‹</button>
-    <div class="cal-title" id="calTitle"></div>
-    <button onclick="mudarMes(1)">›</button>
-  </div>
-  <div class="cal-legend">
-    <span><i class="dot-pend"></i>Pendente</span>
-    <span><i class="dot-atrasado"></i>Atrasado</span>
-    <span><i class="dot-feito"></i>Feito</span>
-    <span><i class="dot-previsto-cumprido"></i>Previsto (feito em outro dia)</span>
-  </div>
-  <div class="cal-grid">
-    <div class="cal-weekdays">
-      <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-    </div>
-    <div class="cal-days" id="calDays"></div>
-  </div>
-</main>
+<main id="list"><div class="loading">Carregando…</div></main>
 
 <button class="fab" onclick="openForm()">+ Nova tarefa</button>
-
-<dialog id="dayDialog">
-  <div class="sheet">
-    <h2 id="dayDlgTitle">Dia</h2>
-    <div id="dayDlgList"></div>
-    <div class="sheet-actions">
-      <button class="btn-cancel" onclick="closeDayDialog()">Fechar</button>
-      <button class="btn-save" onclick="novaTarefaNoDia()">+ Nova tarefa nesse dia</button>
-    </div>
-  </div>
-</dialog>
 
 <dialog id="dialog">
   <div class="sheet">
@@ -214,9 +135,6 @@
 <script>
 let dados = [];
 let filtro = 'pendente';
-let view = 'lista';
-let calRefDate = new Date();
-let diaDialogAtual = null;
 
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
@@ -225,7 +143,6 @@ async function carregar(){
     const j = await r.json();
     dados = (j.data || []).sort((a,b)=> new Date(b.dataCriacao) - new Date(a.dataCriacao));
     render();
-    renderCalendario();
   }catch(e){
     document.getElementById('list').innerHTML = '<div class="loading">Erro ao carregar. Confira a URL em config.js.</div>';
   }
@@ -312,152 +229,18 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   render();
 }));
 
-document.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.view-btn').forEach(x => x.classList.remove('active'));
-  b.classList.add('active');
-  view = b.dataset.v;
-  const isLista = view === 'lista';
-  document.getElementById('viewLista').style.display = isLista ? '' : 'none';
-  document.getElementById('tabsLista').style.display = isLista ? '' : 'none';
-  document.getElementById('viewCalendario').style.display = isLista ? 'none' : '';
-  if(!isLista) renderCalendario();
-}));
-
-// --- Calendário ---
-const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-
-function mudarMes(delta){
-  calRefDate = new Date(calRefDate.getFullYear(), calRefDate.getMonth() + delta, 1);
-  renderCalendario();
-}
-
-function datasDoItem(d){
-  // retorna uma entrada por dia relevante do item: pode ser 1 (caso simples)
-  // ou 2 (quando foi previsto num dia e feito em outro)
-  const prevIso = d.dataPrevista ? d.dataPrevista.slice(0,10) : null;
-  const execIso = d.dataExecucao ? d.dataExecucao.slice(0,10) : null;
-  const out = [];
-
-  if(d.status === 'feito'){
-    if(prevIso && prevIso !== execIso){
-      out.push({ iso: prevIso, tipo: 'previsto-cumprido' });
-    }
-    if(execIso){
-      out.push({ iso: execIso, tipo: 'feito' });
-    } else if(prevIso){
-      out.push({ iso: prevIso, tipo: 'feito' });
-    }
-  } else if(prevIso){
-    out.push({ iso: prevIso, tipo: isAtrasado(d) ? 'atrasado' : 'pendente' });
-  }
-  return out;
-}
-
-function renderCalendario(){
-  const ano = calRefDate.getFullYear();
-  const mes = calRefDate.getMonth();
-  document.getElementById('calTitle').textContent = `${MESES[mes]} ${ano}`;
-
-  const porDia = {};
-  dados.forEach(d => {
-    datasDoItem(d).forEach(({iso, tipo}) => {
-      (porDia[iso] = porDia[iso] || []).push({item: d, tipo});
-    });
-  });
-
-  const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
-  const totalDias = new Date(ano, mes + 1, 0).getDate();
-  const hojeIso = hojeISO();
-
-  let html = '';
-  for(let i = 0; i < primeiroDiaSemana; i++){
-    html += `<div class="cal-day empty"></div>`;
-  }
-  for(let dia = 1; dia <= totalDias; dia++){
-    const iso = `${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
-    const itens = porDia[iso] || [];
-    const tipos = new Set(itens.map(x => x.tipo));
-    let dots = '';
-    if(tipos.has('atrasado')) dots += '<i class="dot-atrasado"></i>';
-    if(tipos.has('pendente')) dots += '<i class="dot-pend"></i>';
-    if(tipos.has('feito')) dots += '<i class="dot-feito"></i>';
-    if(tipos.has('previsto-cumprido')) dots += '<i class="dot-previsto-cumprido"></i>';
-    html += `<div class="cal-day ${iso===hojeIso?'today':''}" onclick="abrirDia('${iso}')">
-      <div class="day-inner">
-        <span>${dia}</span>
-        <span class="dots">${dots}</span>
-      </div>
-    </div>`;
-  }
-  document.getElementById('calDays').innerHTML = html;
-}
-
-function abrirDia(iso){
-  diaDialogAtual = iso;
-  const itens = [];
-  dados.forEach(d => {
-    datasDoItem(d).forEach(({iso: itemIso, tipo}) => {
-      if(itemIso === iso) itens.push({item: d, tipo});
-    });
-  });
-  const dt = new Date(iso + 'T00:00:00');
-  document.getElementById('dayDlgTitle').textContent = dt.toLocaleDateString('pt-BR', {weekday:'long', day:'numeric', month:'long'});
-
-  if(itens.length === 0){
-    document.getElementById('dayDlgList').innerHTML = '<p style="color:#8A968A; font-size:13px;">Nada lançado para esse dia.</p>';
-  } else {
-    document.getElementById('dayDlgList').innerHTML = itens.map(({item: d, tipo}) => {
-      const labels = { pendente:'Pendente', atrasado:'Atrasado', feito:'Feito', 'previsto-cumprido':'Feito' };
-      const classes = { pendente:'pendente', atrasado:'atrasado', feito:'feito', 'previsto-cumprido':'feito' };
-      const statusLabel = labels[tipo];
-      const statusClass = classes[tipo];
-      const nota = tipo === 'previsto-cumprido'
-        ? `<p style="color:#8A968A;">Estava previsto pra hoje — foi feito em ${fmtData(d.dataExecucao)}</p>`
-        : (tipo === 'feito' && d.dataPrevista && d.dataPrevista.slice(0,10) !== iso
-            ? `<p style="color:#8A968A;">Previsto originalmente pra ${fmtData(d.dataPrevista)}</p>`
-            : '');
-      return `
-        <div class="day-item">
-          <div class="top">
-            <span class="badge">Estufa ${d.estufa}</span>
-            <span class="status ${statusClass}">${statusLabel}</span>
-          </div>
-          <h4>${escapeHtml(d.produto || '(insumo não informado)')}</h4>
-          ${d.dose ? `<p>Dose: ${escapeHtml(d.dose)}</p>` : ''}
-          ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
-          ${nota}
-          <div class="row">
-            ${d.status !== 'feito'
-              ? `<button class="btn-done" onclick="marcarFeito('${d.id}').then(()=>abrirDia('${iso}'))">Marcar como feito</button>`
-              : `<button class="btn-undo" onclick="desmarcarFeito('${d.id}').then(()=>abrirDia('${iso}'))">Desmarcar</button>`}
-            <button class="btn-del" onclick="excluir('${d.id}').then(()=>abrirDia('${iso}'))">Excluir</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-  document.getElementById('dayDialog').showModal();
-}
-
-function closeDayDialog(){ document.getElementById('dayDialog').close(); }
-
-function novaTarefaNoDia(){
-  closeDayDialog();
-  openForm(diaDialogAtual);
-}
-
 function hojeISO(){
   const d = new Date();
   return d.toISOString().slice(0,10);
 }
 
-function openForm(dataPreDefinida){
+function openForm(){
   document.getElementById('fEstufa').value='1';
   document.getElementById('fStatus').value='pendente';
   document.getElementById('fTipoTarefa').value='Tratamento de solo';
   document.getElementById('fProduto').value='';
   document.getElementById('fDose').value='';
-  document.getElementById('fData').value = dataPreDefinida || hojeISO();
+  document.getElementById('fData').value=hojeISO();
   document.getElementById('fObs').value='';
   document.getElementById('dialog').showModal();
 }
@@ -490,28 +273,16 @@ async function marcarFeito(id){
     tipo:'nutricao', action:'update', id,
     data:{ status:'feito', dataExecucao: hojeISO() }
   })});
-  await carregar();
-}
-
-async function desmarcarFeito(id){
-  await fetch(API_URL, {method:'POST', body: JSON.stringify({
-    tipo:'nutricao', action:'update', id,
-    data:{ status:'pendente', dataExecucao:'' }
-  })});
-  await carregar();
+  carregar();
 }
 
 async function excluir(id){
   if(!confirm('Excluir este registro?')) return;
   await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'nutricao', action:'delete', id})});
-  await carregar();
+  carregar();
 }
 
 carregar();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
 </script>
 </body>
 </html>
