@@ -30,7 +30,7 @@
   .prod.open .prod-body{display:block;}
   .field{margin-bottom:10px;}
   .field label{display:block; font-size:11px; color:#54614F; margin-bottom:5px;}
-  .field input, .field textarea{width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; font-family:inherit;}
+  .field input, .field textarea, .field select{width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; font-family:inherit; background:#fff;}
   .row2{display:flex; gap:10px;}
   .row2 .field{flex:1;}
   .prod-save{width:100%; padding:9px; border:none; border-radius:8px; background:var(--leaf); color:#fff; font-size:13px; font-weight:600;}
@@ -109,17 +109,50 @@ function escapeHtml(s){
 
 function carregarLista(){
   let raw = localStorage.getItem(BULARIO_KEY);
+  let lista;
   if(!raw){
-    const seed = BULARIO_SEED.map(([nome,categoria],i) => ({
+    lista = BULARIO_SEED.map(([nome,categoria],i) => ({
       id: 'seed-' + i, nome, categoria,
-      ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:''
+      ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
     }));
-    localStorage.setItem(BULARIO_KEY, JSON.stringify(seed));
-    return seed;
+  } else {
+    lista = JSON.parse(raw);
   }
-  return JSON.parse(raw);
+  // Preenche dose/link da bula só onde ainda está vazio — nunca sobrescreve o que você já editou
+  lista.forEach(p => {
+    const ref = REFERENCIA[p.nome];
+    if(!ref) return;
+    if(!p.dose) p.dose = ref.dose || '';
+    if(!p.bulaLink) p.bulaLink = ref.bulaLink || '';
+  });
+  localStorage.setItem(BULARIO_KEY, JSON.stringify(lista));
+  return lista;
 }
 function salvarTudo(){ localStorage.setItem(BULARIO_KEY, JSON.stringify(lista)); }
+
+// Doses conferidas na bula oficial (tomate, quando disponível em g ou mL/100L de água).
+// Produtos sem entrada aqui só têm dose expressa por hectare no rótulo — não preenchidos, conforme combinado.
+const REFERENCIA = {
+  'Metiltiofan': { dose: '70 g/100L água (tomate — mancha-de-cladosporium, mofo-cinzento, septoriose)', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2022-02/metiltiofan_0.pdf' },
+  'Orthocide': { dose: '240 g/100L água (tomate — septoriose/requeima)', bulaLink: 'https://assets.revistacultivar.com.br/edb26eb0-a31f-4aa4-b2ac-97eb14c60a31_orthocide_500_bula.pdf' },
+  'Cercobin': { dose: '70–90 g/100L água (dose geral para a maioria das culturas do rótulo)', bulaLink: 'https://www.agrolink.com.br/agrolinkfito/produto/cercobin-875-wg_10619.html' },
+  'Dithane': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-01/dithane_nt_.pdf' },
+  'Score': { dose: '50 mL/100L água (tomate envarado — septoriose)', bulaLink: 'https://assets.revistacultivar.com.br/02fcfbdc-c0ce-43d0-9d33-9b50bd413a62_score_bula.pdf' },
+  'Amistar Top': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2024-02/amistar_top.pdf' },
+  'Influx': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-02/influx.pdf' },
+  'Verdavis': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-04/verdavis.pdf' },
+  'Cabrio Top': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2024-09/cabrio-top.pdf' },
+  'Bravonil 720': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-08/bravonil_720.pdf' },
+  'Ampligo': { dose: '20–30 mL/100L água (tomate — traça-do-tomateiro)', bulaLink: 'https://www.agricolapanorama.com.br/innovaeditor/assets/download/AMPLIGO.pdf' },
+  'Trigard': { dose: '', bulaLink: 'https://maisagro.syngenta.com.br/media/uploads/2024/08/trigard_750_wp_8426.pdf' },
+  'Maxim': { dose: '', bulaLink: 'https://www.agrolink.com.br/agrolinkfito/produto/maxim_3317.html' },
+  'Abamectina': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-07/abamectin_72_ec_nortox.pdf' },
+  'Actara': { dose: '16–20 g/100L água (tomate — mosca-branca); 12–15 g/100L (pulgão-verde)', bulaLink: 'https://agrofit.agricultura.gov.br/agrofit_cons/agrofit.ap_download_blob_agrofit?p_id_file=540383&p_nm_file=F2136085302%2FACTARA+250+WG%2C+NIRVANA_BULA+COMPLETA_18+12+2025.pdf' },
+  'Oberon': { dose: '', bulaLink: 'https://www.agrolink.com.br/agrolinkfito/produto/oberon_6977.html' },
+  'Minecto Pro': { dose: '30–60 mL/100L água (tomate — traça/broca-pequena); 60–90 mL/100L (mosca-branca); 62,5–90 mL/100L (mosca-minadora)', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-02/minecto_pro.pdf' },
+  'Dipel': { dose: '100–150 mL/100L água (tomate — traça-do-tomateiro, versão líquida SC)', bulaLink: 'https://www.doutoragronomo.com.br/produtos/bacillus-thuringiensis-dipel-liquido-1-litro/' },
+  'Pirate': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-05/pirate.pdf' }
+};
 
 let lista = carregarLista();
 let filtroCat = 'todos';
@@ -142,12 +175,22 @@ function render(){
         <span class="cat ${p.categoria === 'Fungicida' ? 'fung' : 'inset'}">${p.categoria === 'Fungicida' ? 'Fungicida' : 'Inset./Acaricida'}</span>
       </div>
       <div class="prod-body">
+        <div class="field"><label>Nome</label><input id="nm-${p.id}" value="${escapeHtml(p.nome)}"></div>
+        <div class="field">
+          <label>Categoria</label>
+          <select id="cg-${p.id}">
+            <option value="Fungicida" ${p.categoria==='Fungicida'?'selected':''}>Fungicida</option>
+            <option value="Inseticida/Acaricida" ${p.categoria==='Inseticida/Acaricida'?'selected':''}>Inseticida/Acaricida</option>
+          </select>
+        </div>
         <div class="field"><label>Ingrediente ativo</label><input id="ia-${p.id}" value="${escapeHtml(p.ingredienteAtivo||'')}"></div>
         <div class="row2">
           <div class="field"><label>Classe toxicológica</label><input id="ct-${p.id}" value="${escapeHtml(p.classeToxicologica||'')}"></div>
           <div class="field"><label>Carência</label><input id="ca-${p.id}" value="${escapeHtml(p.carencia||'')}"></div>
         </div>
-        <div class="field"><label>Dose</label><input id="do-${p.id}" value="${escapeHtml(p.dose||'')}"></div>
+        <div class="field"><label>Dose</label><input id="do-${p.id}" value="${escapeHtml(p.dose||'')}" placeholder="ex: 70 g/100L água (tomate)"></div>
+        <div class="field"><label>Link da bula oficial</label><input id="bl-${p.id}" value="${escapeHtml(p.bulaLink||'')}" placeholder="https://..."></div>
+        ${p.bulaLink ? `<div style="margin:-4px 0 10px;"><a href="${escapeHtml(p.bulaLink)}" target="_blank" rel="noopener" style="font-size:12.5px; color:var(--leaf);">Abrir bula ↗</a></div>` : ''}
         <div class="field"><label>Observação</label><textarea id="ob-${p.id}" rows="2">${escapeHtml(p.obs||'')}</textarea></div>
         <button class="prod-save" onclick="salvarProduto('${p.id}')">Salvar produto</button>
         <button class="prod-del" onclick="excluirProduto('${p.id}')">Excluir produto</button>
@@ -161,13 +204,18 @@ function toggle(id){ document.getElementById('prod-' + id).classList.toggle('ope
 function salvarProduto(id){
   const p = lista.find(x => x.id === id);
   if(!p) return;
+  p.nome = document.getElementById('nm-' + id).value.trim() || p.nome;
+  p.categoria = document.getElementById('cg-' + id).value;
   p.ingredienteAtivo = document.getElementById('ia-' + id).value;
   p.classeToxicologica = document.getElementById('ct-' + id).value;
   p.carencia = document.getElementById('ca-' + id).value;
   p.dose = document.getElementById('do-' + id).value;
+  p.bulaLink = document.getElementById('bl-' + id).value;
   p.obs = document.getElementById('ob-' + id).value;
   salvarTudo();
-  alert('Salvo.');
+  render();
+  const card = document.getElementById('prod-' + id);
+  if(card) card.classList.add('open');
 }
 function excluirProduto(id){
   if(!confirm('Excluir este produto do bulário?')) return;
