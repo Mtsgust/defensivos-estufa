@@ -15,7 +15,7 @@
   header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
   header h1{margin:6px 0 0; font-size:20px;}
   .tabs{display:flex; gap:8px; margin:14px 20px 0;}
-  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer; color:var(--ink);}
   .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
   main{padding:16px 20px;}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
@@ -59,6 +59,16 @@
   .btn-cancel{background:#EDEFEA; color:var(--ink);}
   .btn-save{background:var(--leaf); color:#fff;}
   .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
+  .prod-row{display:flex; gap:8px; margin-bottom:8px; align-items:center;}
+  .prod-row input{flex:1; padding:9px; border:1px solid var(--line); border-radius:8px; font-size:14px;}
+  .prod-row input.dose-input{flex:0 0 34%;}
+  .prod-row .rm-row{flex:0 0 auto; width:32px; height:32px; border:none; background:#F3E4E0; color:var(--danger); border-radius:8px; font-size:16px; line-height:1;}
+  .add-row{width:100%; padding:9px; border:1px dashed var(--line); border-radius:8px; background:transparent; color:var(--leaf); font-size:13px; font-weight:600; margin-bottom:14px;}
+  .prod-list{margin:8px 0 0; padding:0; list-style:none;}
+  .prod-list li{display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:5px 0; border-bottom:1px dashed var(--line);}
+  .prod-list li:last-child{border-bottom:none;}
+  .prod-list .p-nome{color:var(--ink);}
+  .prod-list .p-dose{color:#54614F; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px; white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -97,16 +107,13 @@
       </div>
     </div>
     <div class="field">
-      <label>Produto</label>
-      <input id="fProduto" type="text" placeholder="ex: Amistar, calda bordalesa...">
+      <label>Produtos e doses</label>
+      <div id="produtosList"></div>
+      <button type="button" class="add-row" onclick="addProdutoRow()">+ Adicionar produto</button>
     </div>
     <div class="field">
       <label>Alvo / motivo</label>
       <input id="fAlvo" type="text" placeholder="ex: requeima, mosca branca...">
-    </div>
-    <div class="field">
-      <label>Dose</label>
-      <input id="fDose" type="text" placeholder="ex: 100ml/20L">
     </div>
     <div class="field">
       <label>Data (prevista ou feita)</label>
@@ -147,19 +154,36 @@ function isAtrasado(d){
   return dt < hoje;
 }
 
+function parseProdutos(d){
+  // Registros novos guardam um array JSON em d.produto. Registros antigos têm texto simples.
+  if(!d.produto) return [];
+  try{
+    const parsed = JSON.parse(d.produto);
+    if(Array.isArray(parsed)) return parsed;
+  }catch(e){}
+  return [{ nome: d.produto, dose: d.dose || '' }];
+}
+
 function itemCard(d){
   const atrasado = isAtrasado(d);
   const statusLabel = d.status === 'feito' ? 'Feito' : (atrasado ? 'Atrasado' : 'Pendente');
   const statusClass = d.status === 'feito' ? 'feito' : (atrasado ? 'atrasado' : 'pendente');
+  const produtos = parseProdutos(d);
+  const tituloProdutos = produtos.length
+    ? produtos.map(p => escapeHtml(p.nome)).join(' + ')
+    : '(produto não informado)';
+  const listaProdutos = produtos.length > 1
+    ? `<ul class="prod-list">${produtos.map(p => `<li><span class="p-nome">${escapeHtml(p.nome)}</span>${p.dose ? `<span class="p-dose">${escapeHtml(p.dose)}</span>` : ''}</li>`).join('')}</ul>`
+    : (produtos[0] && produtos[0].dose ? `<p>Dose: ${escapeHtml(produtos[0].dose)}</p>` : '');
   return `
     <div class="item">
       <div class="item-top">
         <span class="badge">Estufa ${d.estufa}</span>
         <span class="status ${statusClass}">${statusLabel}</span>
       </div>
-      <h3>${escapeHtml(d.produto || '(produto não informado)')}</h3>
+      <h3>${tituloProdutos}</h3>
+      ${listaProdutos}
       ${d.alvo ? `<p>Alvo: ${escapeHtml(d.alvo)}</p>` : ''}
-      ${d.dose ? `<p>Dose: ${escapeHtml(d.dose)}</p>` : ''}
       ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
       <div class="meta">${d.status === 'feito' ? (d.dataExecucao ? 'Feito em ' + fmtData(d.dataExecucao) : '') : (d.dataPrevista ? 'Previsto para ' + fmtData(d.dataPrevista) : 'Sem data definida')}</div>
       <div class="actions">
@@ -226,14 +250,42 @@ function hojeISO(){
   return d.toISOString().slice(0,10);
 }
 
+let prodRowCount = 0;
+function addProdutoRow(nome, dose){
+  prodRowCount++;
+  const id = 'row' + prodRowCount;
+  const wrap = document.getElementById('produtosList');
+  const row = document.createElement('div');
+  row.className = 'prod-row';
+  row.id = id;
+  row.innerHTML = `
+    <input type="text" class="nome-input" placeholder="Produto (ex: Amistar Top)" value="${nome ? escapeHtml(nome) : ''}">
+    <input type="text" class="dose-input" placeholder="Dose (ex: 40ml/100L)" value="${dose ? escapeHtml(dose) : ''}">
+    <button type="button" class="rm-row" onclick="removeProdutoRow('${id}')">×</button>
+  `;
+  wrap.appendChild(row);
+}
+function removeProdutoRow(id){
+  const row = document.getElementById(id);
+  if(row) row.remove();
+  // nunca deixa a lista vazia
+  if(document.querySelectorAll('#produtosList .prod-row').length === 0) addProdutoRow();
+}
+function resetProdutosRows(){
+  document.getElementById('produtosList').innerHTML = '';
+  prodRowCount = 0;
+  addProdutoRow();
+  addProdutoRow();
+  addProdutoRow();
+}
+
 function openForm(){
   document.getElementById('fEstufa').value='1';
   document.getElementById('fStatus').value='pendente';
-  document.getElementById('fProduto').value='';
   document.getElementById('fAlvo').value='';
-  document.getElementById('fDose').value='';
   document.getElementById('fData').value=hojeISO();
   document.getElementById('fObs').value='';
+  resetProdutosRows();
   document.getElementById('dialog').showModal();
 }
 function closeForm(){ document.getElementById('dialog').close(); }
@@ -241,14 +293,19 @@ function closeForm(){ document.getElementById('dialog').close(); }
 async function salvar(){
   const status = document.getElementById('fStatus').value;
   const data = document.getElementById('fData').value;
+  const produtos = Array.from(document.querySelectorAll('#produtosList .prod-row')).map(row => ({
+    nome: row.querySelector('.nome-input').value.trim(),
+    dose: row.querySelector('.dose-input').value.trim()
+  })).filter(p => p.nome);
+
   const payload = {
     tipo: 'pulverizacao',
     action: 'add',
     data: {
       estufa: document.getElementById('fEstufa').value,
-      produto: document.getElementById('fProduto').value,
+      produto: JSON.stringify(produtos),
       alvo: document.getElementById('fAlvo').value,
-      dose: document.getElementById('fDose').value,
+      dose: '',
       obs: document.getElementById('fObs').value,
       status: status,
       dataPrevista: status === 'pendente' ? data : '',
