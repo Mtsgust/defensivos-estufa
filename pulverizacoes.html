@@ -37,6 +37,7 @@
   .item .actions{display:flex; gap:8px; margin-top:10px;}
   .item button{flex:1; border:none; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600;}
   .btn-done{background:var(--feito); color:#fff;}
+  .btn-edit{background:transparent; color:var(--leaf); border:1px solid var(--leaf) !important;}
   .btn-del{background:transparent; color:var(--danger); border:1px solid var(--danger) !important;}
   .fab{
     position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto;
@@ -188,6 +189,7 @@ function itemCard(d){
       <div class="meta">${d.status === 'feito' ? (d.dataExecucao ? 'Feito em ' + fmtData(d.dataExecucao) : '') : (d.dataPrevista ? 'Previsto para ' + fmtData(d.dataPrevista) : 'Sem data definida')}</div>
       <div class="actions">
         ${d.status !== 'feito' ? `<button class="btn-done" onclick="marcarFeito('${d.id}')">Marcar como feito</button>` : ''}
+        <button class="btn-edit" onclick="editarItem('${d.id}')">Editar</button>
         <button class="btn-del" onclick="excluir('${d.id}')">Excluir</button>
       </div>
     </div>
@@ -279,7 +281,11 @@ function resetProdutosRows(){
   addProdutoRow();
 }
 
+let editandoId = null;
+
 function openForm(){
+  editandoId = null;
+  document.getElementById('dlgTitle').textContent = 'Nova pulverização';
   document.getElementById('fEstufa').value='1';
   document.getElementById('fStatus').value='pendente';
   document.getElementById('fAlvo').value='';
@@ -288,6 +294,31 @@ function openForm(){
   resetProdutosRows();
   document.getElementById('dialog').showModal();
 }
+
+function editarItem(id){
+  const d = dados.find(x => x.id === id);
+  if(!d) return;
+  editandoId = id;
+  document.getElementById('dlgTitle').textContent = 'Editar pulverização';
+  document.getElementById('fEstufa').value = d.estufa || '1';
+  document.getElementById('fStatus').value = d.status || 'pendente';
+  document.getElementById('fAlvo').value = d.alvo || '';
+  document.getElementById('fData').value = (d.status === 'feito' ? d.dataExecucao : d.dataPrevista) || hojeISO();
+  document.getElementById('fObs').value = d.obs || '';
+
+  document.getElementById('produtosList').innerHTML = '';
+  prodRowCount = 0;
+  const produtos = parseProdutos(d);
+  if(produtos.length){
+    produtos.forEach(p => addProdutoRow(p.nome, p.dose));
+  } else {
+    addProdutoRow();
+  }
+  addProdutoRow(); // uma linha extra em branco pra facilitar adicionar mais
+
+  document.getElementById('dialog').showModal();
+}
+
 function closeForm(){ document.getElementById('dialog').close(); }
 
 async function salvar(){
@@ -298,22 +329,22 @@ async function salvar(){
     dose: row.querySelector('.dose-input').value.trim()
   })).filter(p => p.nome);
 
-  const payload = {
-    tipo: 'pulverizacao',
-    action: 'add',
-    data: {
-      estufa: document.getElementById('fEstufa').value,
-      produto: JSON.stringify(produtos),
-      alvo: document.getElementById('fAlvo').value,
-      dose: '',
-      obs: document.getElementById('fObs').value,
-      status: status,
-      dataPrevista: status === 'pendente' ? data : '',
-      dataExecucao: status === 'feito' ? data : ''
-    }
+  const campos = {
+    estufa: document.getElementById('fEstufa').value,
+    produto: JSON.stringify(produtos),
+    alvo: document.getElementById('fAlvo').value,
+    dose: '',
+    obs: document.getElementById('fObs').value,
+    status: status,
+    dataPrevista: status === 'pendente' ? data : '',
+    dataExecucao: status === 'feito' ? data : ''
   };
   closeForm();
-  await fetch(API_URL, {method:'POST', body: JSON.stringify(payload)});
+  if(editandoId){
+    await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'update', id: editandoId, data: campos})});
+  } else {
+    await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'add', data: campos})});
+  }
   carregar();
 }
 
