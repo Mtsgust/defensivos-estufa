@@ -17,6 +17,10 @@
   .tabs{display:flex; gap:8px; margin:14px 20px 0;}
   .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer; color:var(--ink);}
   .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
+  .estufa-filter{display:flex; align-items:center; gap:8px; margin:10px 20px 0;}
+  .estufa-filter label{font-size:12px; color:#CFE0D3;}
+  .estufa-filter select{flex:1; padding:8px 10px; border-radius:8px; border:none; font-size:13px; background:rgba(255,255,255,.12); color:#fff;}
+  .estufa-filter select option{color:#000;}
   main{padding:16px 20px;}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
   .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
@@ -60,16 +64,28 @@
   .btn-cancel{background:#EDEFEA; color:var(--ink);}
   .btn-save{background:var(--leaf); color:#fff;}
   .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
-  .prod-row{display:flex; gap:8px; margin-bottom:8px; align-items:center;}
-  .prod-row input{flex:1; padding:9px; border:1px solid var(--line); border-radius:8px; font-size:14px;}
-  .prod-row input.dose-input{flex:0 0 34%;}
-  .prod-row .rm-row{flex:0 0 auto; width:32px; height:32px; border:none; background:#F3E4E0; color:var(--danger); border-radius:8px; font-size:16px; line-height:1;}
+  .prod-row{border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:8px;}
+  .prod-row-top{display:flex; gap:8px; align-items:center; margin-bottom:6px;}
+  .prod-row-top input{flex:1; padding:9px; border:1px solid var(--line); border-radius:8px; font-size:14px;}
+  .prod-row-bottom{display:flex; gap:8px; align-items:center;}
+  .prod-row-bottom input.dose100-input{flex:0 0 70px; padding:9px; border:1px solid var(--line); border-radius:8px; font-size:14px;}
+  .prod-row-bottom select.unidade-input{flex:0 0 64px; padding:9px 4px; border:1px solid var(--line); border-radius:8px; font-size:13px; background:#fff;}
+  .prod-row-bottom .prod-total-calc{flex:1; font-size:12px; color:var(--leaf); font-weight:600; text-align:right;}
+  .rm-row{flex:0 0 auto; width:32px; height:32px; border:none; background:#F3E4E0; color:var(--danger); border-radius:8px; font-size:16px; line-height:1;}
   .add-row{width:100%; padding:9px; border:1px dashed var(--line); border-radius:8px; background:transparent; color:var(--leaf); font-size:13px; font-weight:600; margin-bottom:14px;}
   .prod-list{margin:8px 0 0; padding:0; list-style:none;}
   .prod-list li{display:flex; justify-content:space-between; gap:10px; font-size:13.5px; padding:5px 0; border-bottom:1px dashed var(--line);}
   .prod-list li:last-child{border-bottom:none;}
   .prod-list .p-nome{color:var(--ink);}
-  .prod-list .p-dose{color:#54614F; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px; white-space:nowrap;}
+  .prod-list .p-dose{color:#54614F; font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12.5px; white-space:nowrap; text-align:right;}
+  .prod-list .p-total{color:var(--leaf); font-size:11px; display:block; font-weight:600;}
+  .estufa-grid{display:flex; flex-wrap:wrap; gap:8px;}
+  .estufa-chip{
+    width:44px; height:44px; border-radius:10px; border:1px solid var(--line); background:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600;
+    color:var(--ink); cursor:pointer; user-select:none;
+  }
+  .estufa-chip.sel{background:var(--leaf); color:#fff; border-color:var(--leaf);}
 </style>
 </head>
 <body>
@@ -81,6 +97,19 @@
     <div class="tab" data-f="feito">Feitas</div>
     <div class="tab" data-f="todas">Todas</div>
   </div>
+  <div class="estufa-filter">
+    <label for="filtroEstufaSel">Estufa</label>
+    <select id="filtroEstufaSel">
+      <option value="todas">Todas as estufas</option>
+      <option value="1">Estufa 1</option>
+      <option value="2">Estufa 2</option>
+      <option value="3">Estufa 3</option>
+      <option value="4">Estufa 4</option>
+      <option value="5">Estufa 5</option>
+      <option value="6">Estufa 6</option>
+      <option value="7">Estufa 7</option>
+    </select>
+  </div>
 </header>
 <main id="list"><div class="loading">Carregando…</div></main>
 
@@ -89,16 +118,19 @@
 <dialog id="dialog">
   <div class="sheet">
     <h2 id="dlgTitle">Nova pulverização</h2>
-    <div class="row2">
-      <div class="field">
-        <label>Estufa</label>
-        <select id="fEstufa">
-          <option value="1">Estufa 1</option><option value="2">Estufa 2</option>
-          <option value="3">Estufa 3</option><option value="4">Estufa 4</option>
-          <option value="5">Estufa 5</option><option value="6">Estufa 6</option>
-          <option value="7">Estufa 7</option>
-        </select>
+    <div class="field">
+      <label>Estufas <span class="hint" style="margin:0; font-size:12px; color:#8A968A;">(toque em quantas precisar)</span></label>
+      <div class="estufa-grid" id="estufaGrid">
+        <div class="estufa-chip" data-e="1">1</div>
+        <div class="estufa-chip" data-e="2">2</div>
+        <div class="estufa-chip" data-e="3">3</div>
+        <div class="estufa-chip" data-e="4">4</div>
+        <div class="estufa-chip" data-e="5">5</div>
+        <div class="estufa-chip" data-e="6">6</div>
+        <div class="estufa-chip" data-e="7">7</div>
       </div>
+    </div>
+    <div class="row2">
       <div class="field">
         <label>Situação</label>
         <select id="fStatus">
@@ -108,7 +140,11 @@
       </div>
     </div>
     <div class="field">
-      <label>Produtos e doses</label>
+      <label>Litros de água usados na aplicação</label>
+      <input id="fLitros" type="number" step="any" inputmode="decimal" placeholder="ex: 300">
+    </div>
+    <div class="field">
+      <label>Produtos e doses <span class="hint" style="margin:0; font-size:12px; color:#8A968A;">(dose para cada 100L de água)</span></label>
       <div id="produtosList"></div>
       <button type="button" class="add-row" onclick="addProdutoRow()">+ Adicionar produto</button>
     </div>
@@ -135,6 +171,7 @@
 <script>
 let dados = [];
 let filtro = 'pendente';
+let filtroEstufa = 'todas';
 
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
@@ -165,26 +202,47 @@ function parseProdutos(d){
   return [{ nome: d.produto, dose: d.dose || '' }];
 }
 
+function estufasArray(d){
+  return String(d.estufa || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+
+function calcTotalProduto(p, litros){
+  const dose = parseFloat(p.dose100);
+  const l = parseFloat(litros);
+  if(p.dose100 === undefined || isNaN(dose) || isNaN(l) || l <= 0) return null;
+  return `${formatNum((dose/100)*l)} ${p.unidade || ''}`;
+}
+
 function itemCard(d){
   const atrasado = isAtrasado(d);
   const statusLabel = d.status === 'feito' ? 'Feito' : (atrasado ? 'Atrasado' : 'Pendente');
   const statusClass = d.status === 'feito' ? 'feito' : (atrasado ? 'atrasado' : 'pendente');
   const produtos = parseProdutos(d);
+  const estufas = estufasArray(d);
+  const badgeTxt = estufas.length > 1 ? `Estufas ${estufas.join(', ')}` : `Estufa ${estufas[0] || '?'}`;
   const tituloProdutos = produtos.length
     ? produtos.map(p => escapeHtml(p.nome)).join(' + ')
     : '(produto não informado)';
+  const doseTxt = p => p.dose100 !== undefined
+    ? (p.dose100 ? `${escapeHtml(p.dose100)} ${p.unidade || ''}/100L` : '')
+    : (p.dose ? escapeHtml(p.dose) : '');
+  const totalTxt = p => {
+    const t = calcTotalProduto(p, d.litrosAgua);
+    return t ? `<span class="p-total">gastou ${t}</span>` : '';
+  };
   const listaProdutos = produtos.length > 1
-    ? `<ul class="prod-list">${produtos.map(p => `<li><span class="p-nome">${escapeHtml(p.nome)}</span>${p.dose ? `<span class="p-dose">${escapeHtml(p.dose)}</span>` : ''}</li>`).join('')}</ul>`
-    : (produtos[0] && produtos[0].dose ? `<p>Dose: ${escapeHtml(produtos[0].dose)}</p>` : '');
+    ? `<ul class="prod-list">${produtos.map(p => `<li><span class="p-nome">${escapeHtml(p.nome)}</span><span class="p-dose">${doseTxt(p)}${totalTxt(p)}</span></li>`).join('')}</ul>`
+    : (produtos[0] ? `<p>Dose: ${doseTxt(produtos[0]) || '—'}${produtos[0] && calcTotalProduto(produtos[0], d.litrosAgua) ? ' · gastou ' + calcTotalProduto(produtos[0], d.litrosAgua) : ''}</p>` : '');
   return `
     <div class="item">
       <div class="item-top">
-        <span class="badge">Estufa ${d.estufa}</span>
+        <span class="badge">${badgeTxt}</span>
         <span class="status ${statusClass}">${statusLabel}</span>
       </div>
       <h3>${tituloProdutos}</h3>
       ${listaProdutos}
       ${d.alvo ? `<p>Alvo: ${escapeHtml(d.alvo)}</p>` : ''}
+      ${d.litrosAgua ? `<p>Água usada: ${escapeHtml(d.litrosAgua)} L</p>` : ''}
       ${d.obs ? `<p>${escapeHtml(d.obs)}</p>` : ''}
       <div class="meta">${d.status === 'feito' ? (d.dataExecucao ? 'Feito em ' + fmtData(d.dataExecucao) : '') : (d.dataPrevista ? 'Previsto para ' + fmtData(d.dataPrevista) : 'Sem data definida')}</div>
       <div class="actions">
@@ -199,7 +257,8 @@ function itemCard(d){
 function render(){
   const list = document.getElementById('list');
   let itens = dados;
-  if(filtro !== 'todas') itens = dados.filter(d => d.status === filtro);
+  if(filtro !== 'todas') itens = itens.filter(d => d.status === filtro);
+  if(filtroEstufa !== 'todas') itens = itens.filter(d => estufasArray(d).includes(filtroEstufa));
   if(itens.length === 0){
     list.innerHTML = '<div class="empty">Nada por aqui.</div>';
     return;
@@ -247,25 +306,65 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   render();
 }));
 
+document.getElementById('filtroEstufaSel').addEventListener('change', (e) => {
+  filtroEstufa = e.target.value;
+  render();
+});
+
 function hojeISO(){
   const d = new Date();
   return d.toISOString().slice(0,10);
 }
 
+function formatNum(n){
+  const r = Math.round(n * 100) / 100;
+  return r.toString().replace('.', ',');
+}
+
+function atualizarTotais(){
+  const litros = parseFloat(document.getElementById('fLitros').value) || 0;
+  document.querySelectorAll('#produtosList .prod-row').forEach(row => {
+    const dose = parseFloat(row.querySelector('.dose100-input').value);
+    const unidade = row.querySelector('.unidade-input').value;
+    const totalEl = row.querySelector('.prod-total-calc');
+    if(!isNaN(dose) && litros > 0){
+      totalEl.textContent = `= ${formatNum((dose/100)*litros)} ${unidade} no total`;
+    } else {
+      totalEl.textContent = '';
+    }
+  });
+}
+document.getElementById('fLitros').addEventListener('input', atualizarTotais);
+document.getElementById('produtosList').addEventListener('input', atualizarTotais);
+document.getElementById('produtosList').addEventListener('change', atualizarTotais);
+
 let prodRowCount = 0;
-function addProdutoRow(nome, dose){
+function addProdutoRow(nome, dose100, unidade){
   prodRowCount++;
   const id = 'row' + prodRowCount;
   const wrap = document.getElementById('produtosList');
   const row = document.createElement('div');
   row.className = 'prod-row';
   row.id = id;
+  const un = unidade || 'mL';
   row.innerHTML = `
-    <input type="text" class="nome-input" placeholder="Produto (ex: Amistar Top)" value="${nome ? escapeHtml(nome) : ''}">
-    <input type="text" class="dose-input" placeholder="Dose (ex: 40ml/100L)" value="${dose ? escapeHtml(dose) : ''}">
-    <button type="button" class="rm-row" onclick="removeProdutoRow('${id}')">×</button>
+    <div class="prod-row-top">
+      <input type="text" class="nome-input" placeholder="Produto (ex: Amistar Top)" value="${nome ? escapeHtml(nome) : ''}">
+      <button type="button" class="rm-row" onclick="removeProdutoRow('${id}')">×</button>
+    </div>
+    <div class="prod-row-bottom">
+      <input type="number" step="any" inputmode="decimal" class="dose100-input" placeholder="Dose/100L" value="${dose100 !== undefined && dose100 !== '' ? escapeHtml(String(dose100)) : ''}">
+      <select class="unidade-input">
+        <option value="mL" ${un==='mL'?'selected':''}>mL</option>
+        <option value="g" ${un==='g'?'selected':''}>g</option>
+        <option value="L" ${un==='L'?'selected':''}>L</option>
+        <option value="kg" ${un==='kg'?'selected':''}>kg</option>
+      </select>
+      <span class="prod-total-calc"></span>
+    </div>
   `;
   wrap.appendChild(row);
+  atualizarTotais();
 }
 function removeProdutoRow(id){
   const row = document.getElementById(id);
@@ -281,16 +380,44 @@ function resetProdutosRows(){
   addProdutoRow();
 }
 
+function normalizeUnidade(u){
+  const s = String(u || '').toLowerCase();
+  if(s.startsWith('kg')) return 'kg';
+  if(s.startsWith('g')) return 'g';
+  if(s.startsWith('l')) return 'L';
+  return 'mL';
+}
+function parseDoseLegado(texto){
+  if(!texto) return { valor:'', unidade:'mL' };
+  const m = String(texto).match(/([\d.,]+)\s*([a-zA-Zµ]+)/);
+  if(m) return { valor: m[1].replace(',', '.'), unidade: normalizeUnidade(m[2]) };
+  return { valor:'', unidade:'mL' };
+}
+
+let estufasSelecionadas = new Set();
+document.querySelectorAll('#estufaGrid .estufa-chip').forEach(chip => chip.addEventListener('click', () => {
+  const e = chip.dataset.e;
+  if(estufasSelecionadas.has(e)){ estufasSelecionadas.delete(e); chip.classList.remove('sel'); }
+  else { estufasSelecionadas.add(e); chip.classList.add('sel'); }
+}));
+function setEstufasSelecionadas(lista){
+  estufasSelecionadas = new Set(lista);
+  document.querySelectorAll('#estufaGrid .estufa-chip').forEach(chip => {
+    chip.classList.toggle('sel', estufasSelecionadas.has(chip.dataset.e));
+  });
+}
+
 let editandoId = null;
 
 function openForm(){
   editandoId = null;
   document.getElementById('dlgTitle').textContent = 'Nova pulverização';
-  document.getElementById('fEstufa').value='1';
+  setEstufasSelecionadas(['1']);
   document.getElementById('fStatus').value='pendente';
   document.getElementById('fAlvo').value='';
   document.getElementById('fData').value=hojeISO();
   document.getElementById('fObs').value='';
+  document.getElementById('fLitros').value='';
   resetProdutosRows();
   document.getElementById('dialog').showModal();
 }
@@ -300,17 +427,25 @@ function editarItem(id){
   if(!d) return;
   editandoId = id;
   document.getElementById('dlgTitle').textContent = 'Editar pulverização';
-  document.getElementById('fEstufa').value = d.estufa || '1';
+  setEstufasSelecionadas(estufasArray(d));
   document.getElementById('fStatus').value = d.status || 'pendente';
   document.getElementById('fAlvo').value = d.alvo || '';
   document.getElementById('fData').value = (d.status === 'feito' ? d.dataExecucao : d.dataPrevista) || hojeISO();
   document.getElementById('fObs').value = d.obs || '';
+  document.getElementById('fLitros').value = d.litrosAgua || '';
 
   document.getElementById('produtosList').innerHTML = '';
   prodRowCount = 0;
   const produtos = parseProdutos(d);
   if(produtos.length){
-    produtos.forEach(p => addProdutoRow(p.nome, p.dose));
+    produtos.forEach(p => {
+      if(p.dose100 !== undefined){
+        addProdutoRow(p.nome, p.dose100, p.unidade);
+      } else {
+        const legado = parseDoseLegado(p.dose);
+        addProdutoRow(p.nome, legado.valor, legado.unidade);
+      }
+    });
   } else {
     addProdutoRow();
   }
@@ -322,18 +457,23 @@ function editarItem(id){
 function closeForm(){ document.getElementById('dialog').close(); }
 
 async function salvar(){
+  if(estufasSelecionadas.size === 0){ alert('Selecione ao menos uma estufa.'); return; }
   const status = document.getElementById('fStatus').value;
   const data = document.getElementById('fData').value;
+  const litrosAgua = document.getElementById('fLitros').value;
+  const estufasOrdenadas = Array.from(estufasSelecionadas).sort((a,b) => a - b);
   const produtos = Array.from(document.querySelectorAll('#produtosList .prod-row')).map(row => ({
     nome: row.querySelector('.nome-input').value.trim(),
-    dose: row.querySelector('.dose-input').value.trim()
+    dose100: row.querySelector('.dose100-input').value.trim(),
+    unidade: row.querySelector('.unidade-input').value
   })).filter(p => p.nome);
 
   const campos = {
-    estufa: document.getElementById('fEstufa').value,
+    estufa: estufasOrdenadas.join(','),
     produto: JSON.stringify(produtos),
     alvo: document.getElementById('fAlvo').value,
     dose: '',
+    litrosAgua: litrosAgua,
     obs: document.getElementById('fObs').value,
     status: status,
     dataPrevista: status === 'pendente' ? data : '',
