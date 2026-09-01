@@ -1,5 +1,5 @@
-const CACHE_NAME = 'habitos-v1';
-const ASSETS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+const CACHE_NAME = 'habitos-v3';
+const ASSETS = ['./index.html', './manifesto.json', './ícone-192.png', './ícone-512.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
