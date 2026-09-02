@@ -67,6 +67,7 @@
 </main>
 
 <button class="fab" onclick="abrirNovo()">+ Novo produto</button>
+<button class="fab" style="bottom:78px; background:var(--gold);" onclick="completarPadrao()">Completar lista padrão</button>
 
 <dialog id="dialog">
   <div class="sheet">
@@ -134,11 +135,13 @@ async function semear(){
     }
   });
   for(const p of base){
-    await apiCall('add', { data: {
-      nome: p.nome, categoria: p.categoria,
-      ingredienteAtivo: p.ingredienteAtivo || '', classeToxicologica: p.classeToxicologica || '',
-      dose: p.dose || '', carencia: p.carencia || '', obs: p.obs || '', bulaLink: p.bulaLink || ''
-    }});
+    try{
+      await apiCall('add', { data: {
+        nome: p.nome, categoria: p.categoria,
+        ingredienteAtivo: p.ingredienteAtivo || '', classeToxicologica: p.classeToxicologica || '',
+        dose: p.dose || '', carencia: p.carencia || '', obs: p.obs || '', bulaLink: p.bulaLink || ''
+      }});
+    }catch(e){ /* segue pro próximo mesmo se um falhar */ }
   }
 }
 
@@ -286,6 +289,24 @@ async function salvarNovo(){
   novo.id = res.id;
   lista.push(novo);
   render();
+}
+
+async function completarPadrao(){
+  const nomesExistentes = new Set(lista.map(p => p.nome));
+  const faltando = BULARIO_SEED.filter(([nome]) => !nomesExistentes.has(nome));
+  if(faltando.length === 0){ alert('Já está tudo lá — nenhum produto padrão faltando.'); return; }
+  if(!confirm(`Faltam ${faltando.length} produtos da lista padrão. Adicionar agora?`)) return;
+  for(const [nome, categoria] of faltando){
+    const ref = REFERENCIA[nome] || {};
+    const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose: ref.dose||'', carencia:'', obs:'', bulaLink: ref.bulaLink||'' };
+    try{
+      const res = await apiCall('add', { data: novo });
+      novo.id = res.id;
+      lista.push(novo);
+    }catch(e){ /* segue pro próximo */ }
+  }
+  render();
+  alert('Pronto! Lista completada.');
 }
 
 carregar();
