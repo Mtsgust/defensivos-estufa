@@ -86,6 +86,7 @@
   </div>
 </dialog>
 
+<script src="config.js"></script>
 <script>
 const BULARIO_KEY = 'bularioProdutos_v1';
 
@@ -107,28 +108,39 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function carregarLista(){
-  let raw = localStorage.getItem(BULARIO_KEY);
-  let lista;
-  if(!raw){
-    lista = BULARIO_SEED.map(([nome,categoria],i) => ({
-      id: 'seed-' + i, nome, categoria,
-      ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
-    }));
-  } else {
-    lista = JSON.parse(raw);
-  }
-  // Preenche dose/link da bula só onde ainda está vazio — nunca sobrescreve o que você já editou
-  lista.forEach(p => {
-    const ref = REFERENCIA[p.nome];
-    if(!ref) return;
-    if(!p.dose) p.dose = ref.dose || '';
-    if(!p.bulaLink) p.bulaLink = ref.bulaLink || '';
-  });
-  localStorage.setItem(BULARIO_KEY, JSON.stringify(lista));
-  return lista;
+function carregarListaLegado(){
+  // usado só uma vez, pra migrar o que já estava salvo neste navegador (se houver)
+  const raw = localStorage.getItem(BULARIO_KEY);
+  return raw ? JSON.parse(raw) : null;
 }
-function salvarTudo(){ localStorage.setItem(BULARIO_KEY, JSON.stringify(lista)); }
+
+async function apiCall(action, extra){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(Object.assign({tipo:'bulario', action}, extra))});
+  return r.json();
+}
+
+async function semear(){
+  // primeira vez que a planilha é usada: manda a base (o que já estava salvo neste
+  // navegador, se houver, senão a lista padrão) pra planilha, uma vez só.
+  const legado = carregarListaLegado();
+  const base = legado || BULARIO_SEED.map(([nome,categoria]) => ({
+    nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
+  }));
+  base.forEach(p => {
+    const ref = REFERENCIA[p.nome];
+    if(ref){
+      if(!p.dose) p.dose = ref.dose || '';
+      if(!p.bulaLink) p.bulaLink = ref.bulaLink || '';
+    }
+  });
+  for(const p of base){
+    await apiCall('add', { data: {
+      nome: p.nome, categoria: p.categoria,
+      ingredienteAtivo: p.ingredienteAtivo || '', classeToxicologica: p.classeToxicologica || '',
+      dose: p.dose || '', carencia: p.carencia || '', obs: p.obs || '', bulaLink: p.bulaLink || ''
+    }});
+  }
+}
 
 // Doses conferidas na bula oficial (tomate, quando disponível em g ou mL/100L de água).
 // Produtos sem entrada aqui só têm dose expressa por hectare no rótulo — não preenchidos, conforme combinado.
@@ -154,9 +166,28 @@ const REFERENCIA = {
   'Pirate': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-05/pirate.pdf' }
 };
 
-let lista = carregarLista();
+let lista = [];
 let filtroCat = 'todos';
 let busca = '';
+
+async function carregar(){
+  document.getElementById('bu-list').innerHTML = '<div class="empty">Carregando…</div>';
+  try{
+    const r = await fetch(`${API_URL}?tipo=bulario`);
+    const j = await r.json();
+    let dadosServidor = j.data || [];
+    if(dadosServidor.length === 0){
+      await semear();
+      const r2 = await fetch(`${API_URL}?tipo=bulario`);
+      const j2 = await r2.json();
+      dadosServidor = j2.data || [];
+    }
+    lista = dadosServidor;
+    render();
+  }catch(e){
+    document.getElementById('bu-list').innerHTML = '<div class="empty">Erro ao carregar. Confira a URL em config.js.</div>';
+  }
+}
 
 function render(){
   const wrap = document.getElementById('bu-list');
@@ -201,27 +232,30 @@ function render(){
 
 function toggle(id){ document.getElementById('prod-' + id).classList.toggle('open'); }
 
-function salvarProduto(id){
+async function salvarProduto(id){
   const p = lista.find(x => x.id === id);
   if(!p) return;
-  p.nome = document.getElementById('nm-' + id).value.trim() || p.nome;
-  p.categoria = document.getElementById('cg-' + id).value;
-  p.ingredienteAtivo = document.getElementById('ia-' + id).value;
-  p.classeToxicologica = document.getElementById('ct-' + id).value;
-  p.carencia = document.getElementById('ca-' + id).value;
-  p.dose = document.getElementById('do-' + id).value;
-  p.bulaLink = document.getElementById('bl-' + id).value;
-  p.obs = document.getElementById('ob-' + id).value;
-  salvarTudo();
+  const atualizado = {
+    nome: document.getElementById('nm-' + id).value.trim() || p.nome,
+    categoria: document.getElementById('cg-' + id).value,
+    ingredienteAtivo: document.getElementById('ia-' + id).value,
+    classeToxicologica: document.getElementById('ct-' + id).value,
+    carencia: document.getElementById('ca-' + id).value,
+    dose: document.getElementById('do-' + id).value,
+    bulaLink: document.getElementById('bl-' + id).value,
+    obs: document.getElementById('ob-' + id).value
+  };
+  Object.assign(p, atualizado);
   render();
   const card = document.getElementById('prod-' + id);
   if(card) card.classList.add('open');
+  await apiCall('update', { id, data: atualizado });
 }
-function excluirProduto(id){
+async function excluirProduto(id){
   if(!confirm('Excluir este produto do bulário?')) return;
   lista = lista.filter(x => x.id !== id);
-  salvarTudo();
   render();
+  await apiCall('delete', { id });
 }
 
 document.querySelectorAll('.subnav .chip').forEach(c => c.addEventListener('click', () => {
@@ -240,19 +274,21 @@ function abrirNovo(){
   document.getElementById('fCategoria').value = 'Fungicida';
   document.getElementById('dialog').showModal();
 }
-function salvarNovo(){
+async function salvarNovo(){
   const nome = document.getElementById('fNome').value.trim();
   if(!nome){ alert('Digite o nome do produto.'); return; }
-  lista.push({
-    id: 'p-' + Date.now(), nome, categoria: document.getElementById('fCategoria').value,
-    ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:''
-  });
-  salvarTudo();
+  const novo = {
+    nome, categoria: document.getElementById('fCategoria').value,
+    ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
+  };
   document.getElementById('dialog').close();
+  const res = await apiCall('add', { data: novo });
+  novo.id = res.id;
+  lista.push(novo);
   render();
 }
 
-render();
+carregar();
 </script>
 </body>
 </html>
