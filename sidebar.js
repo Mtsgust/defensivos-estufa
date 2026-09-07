@@ -11,6 +11,8 @@
       '<path d="M12 21c-5 0-8-3-8-8 0-6 5-9 14-10-.5 9-2 18-6 18z"/><path d="M12 21c0-6 2-11 6-14"/>'],
     ['estoque.html', 'Estoque', 'estoque',
       '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
+    ['colheita.html', 'Colheita', 'colheita',
+      '<path d="M3 21h18"/><path d="M6 21v-9M12 21V5M18 21v-12"/>'],
     ['bulario.html', 'Bulário', 'bulario',
       '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>']
   ];

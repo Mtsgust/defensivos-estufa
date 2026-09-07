@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Colheita</title>
+<style>
+  :root{
+    --bg:#F2F5EF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --paper:#FFFFFF; --line:#DCE3D8; --pend:#C68A2E; --feito:#3D7A5C; --danger:#B5432F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding-bottom:100px;}
+  header{background:var(--leaf-dark); color:#fff; padding:16px 20px 20px; position:sticky; top:0; z-index:5;}
+  header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
+  header h1{margin:6px 0 0; font-size:20px;}
+  header p{margin:4px 0 0; font-size:12.5px; color:#CFE0D3;}
+  .tabs{display:flex; gap:8px; margin:14px 20px 0;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer; color:var(--ink);}
+  .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
+  .estufa-filter{display:flex; align-items:center; gap:8px; margin:10px 20px 0;}
+  .estufa-filter label{font-size:12px; color:#CFE0D3;}
+  .estufa-filter select{flex:1; padding:8px 10px; border-radius:8px; border:none; font-size:13px; background:rgba(255,255,255,.12); color:#fff;}
+  .estufa-filter select option{color:#000;}
+  main{padding:16px 20px;}
+  .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
+  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
+  .item.nociclo{border-style:dashed; text-align:center; color:#8A968A;}
+  .item-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .badge{font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; font-weight:600; background:var(--leaf); color:#fff; padding:3px 9px; border-radius:6px; white-space:nowrap;}
+  .status{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
+  .status.colhendo{background:#DCEFE3; color:var(--feito);}
+  .status.crescendo{background:#FBEBD3; color:var(--pend);}
+  .status.fim{background:#EDEFEA; color:#8A968A;}
+  .item h3{margin:8px 0 2px; font-size:16px;}
+  .total{font-size:22px; font-weight:700; margin:6px 0 0;}
+  .total small{font-size:13px; font-weight:500; color:#54614F;}
+  .meta{font-size:12px; color:#8A968A; margin-top:4px;}
+  .actions{display:flex; gap:8px; margin-top:10px;}
+  .actions button{flex:1; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-in{background:var(--feito); color:#fff; border:none;}
+  .btn-hist{background:transparent; color:var(--leaf); border:1px solid var(--leaf) !important;}
+  .btn-edit{background:transparent; color:#8A968A; border:1px solid var(--line) !important; flex:0 0 44px !important;}
+  .btn-end{background:transparent; color:var(--pend); border:1px solid var(--pend) !important;}
+  .fab{position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto; background:var(--leaf); color:#fff; border:none; border-radius:14px; padding:16px; font-size:16px; font-weight:600; box-shadow:0 4px 14px rgba(23,52,37,.35); cursor:pointer;}
+  .fab2{position:fixed; bottom:78px; right:20px; left:20px; max-width:420px; margin:0 auto; background:var(--feito); color:#fff; border:none; border-radius:14px; padding:11px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(23,52,37,.25);}
+  .fab3{position:fixed; bottom:124px; right:20px; left:20px; max-width:420px; margin:0 auto; background:transparent; color:var(--leaf); border:1px dashed var(--leaf); border-radius:14px; padding:9px; font-size:12.5px; font-weight:600; cursor:pointer;}
+  .imp-status{font-size:12.5px; color:#54614F; margin:4px 0 8px; white-space:pre-line;}
+  .imp-item{border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:8px; font-size:13px;}
+  .imp-item b{font-size:14px;}
+  .imp-item small{color:#8A968A; display:block; font-size:11.5px;}
+  dialog{border:none; border-radius:16px; width:min(92vw,420px); padding:0;}
+  dialog::backdrop{background:rgba(23,52,37,.45);}
+  .sheet{padding:20px; max-height:85vh; overflow-y:auto;}
+  .sheet h2{margin:0 0 4px; font-size:18px;}
+  .sheet .sub{font-size:12.5px; color:#8A968A; margin:0 0 14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:#54614F; margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:15px; background:#fff; font-family:inherit;}
+  .row2{display:flex; gap:10px;} .row2 .field{flex:1;}
+  .sheet-actions{display:flex; gap:10px; margin-top:14px;}
+  .sheet-actions button{flex:1; padding:12px; border-radius:9px; border:none; font-size:15px; font-weight:600; cursor:pointer;}
+  .btn-cancel{background:#EDEFEA; color:var(--ink);}
+  .btn-save{background:var(--leaf); color:#fff;}
+  .prod-del{width:100%; padding:10px; border:1px solid var(--danger); border-radius:9px; background:transparent; color:var(--danger); font-size:13.5px; font-weight:600; margin-top:10px; cursor:pointer;}
+  .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
+  .mov{display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px; align-items:center;}
+  .mov:last-child{border-bottom:none;}
+  .mov b{font-size:14px;}
+  .mov small{display:block; color:#8A968A; font-size:11.5px;}
+  .mov .rm{flex:0 0 auto; border:1px solid var(--danger); background:transparent; color:var(--danger); border-radius:8px; font-size:12px; padding:5px 10px; cursor:pointer;}
+</style>
+<link rel="stylesheet" href="sidebar.css">
+</head>
+<body data-page="colheita">
+<header>
+  <a href="index.html">‹ voltar</a>
+  <h1>Colheita</h1>
+  <p>kg e caixas por estufa, por ciclo de plantio.</p>
+  <div class="tabs">
+    <div class="tab active" data-f="ativa">Safra ativa</div>
+    <div class="tab" data-f="hist">Histórico de safras</div>
+  </div>
+  <div class="estufa-filter">
+    <label for="filtroEstufaSel">Estufa</label>
+    <select id="filtroEstufaSel">
+      <option value="todas">Todas as estufas</option>
+      <option value="1">Estufa 1</option>
+      <option value="2">Estufa 2</option>
+      <option value="3">Estufa 3</option>
+      <option value="4">Estufa 4</option>
+      <option value="5">Estufa 5</option>
+      <option value="6">Estufa 6</option>
+      <option value="7">Estufa 7</option>
+    </select>
+  </div>
+</header>
+
+<main id="list"><div class="loading">Carregando…</div></main>
+
+<button class="fab3" onclick="openImp()">⇅ Importar do Excel / backup</button>
+<button class="fab2" onclick="openColheita()">+ Lançar colheita</button>
+<button class="fab" onclick="openCiclo()">+ Novo ciclo (plantio)</button>
+
+<!-- Importar do Excel / backup -->
+<dialog id="dlgImp">
+  <div class="sheet">
+    <h2>Importar do Excel</h2>
+    <p class="sub">No Excel, selecione a aba SAFRA ATIVA inteira, copie (Ctrl+C) e cole abaixo. Depois confira e salve.</p>
+    <div class="field"><label>Colar aqui (ou anexar .csv/.txt)</label><textarea id="impTexto" rows="6" placeholder="Cole a planilha copiada do Excel..."></textarea></div>
+    <div class="field"><label>Arquivo (opcional)</label><input id="impArquivo" type="file" accept=".csv,.txt,.tsv"></div>
+    <div class="row2">
+      <div class="field"><label>Cultura p/ os ciclos</label><input id="impCultura" type="text" value="Tomate"></div>
+      <div class="field"><label>Variedade</label><input id="impVar" type="text" placeholder="ex: Frutilla"></div>
+    </div>
+    <div class="imp-status" id="impStatus"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgImp').close()">Fechar</button>
+      <button class="btn-save" onclick="processarImp()">Ler</button>
+    </div>
+    <div id="impPreview"></div>
+    <div class="sheet-actions" id="impSaveBar" style="display:none">
+      <button class="btn-cancel" onclick="document.getElementById('dlgImp').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarImportados()">Salvar tudo</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="baixarBackup()">Baixar backup (CSV)</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Novo / editar ciclo -->
+<dialog id="dlgCiclo">
+  <div class="sheet">
+    <h2 id="dlgCicloTitle">Novo ciclo</h2>
+    <p class="sub">Um ciclo = um plantio numa estufa.</p>
+    <div class="row2">
+      <div class="field"><label>Estufa</label>
+        <select id="cEstufa">
+          <option value="1">Estufa 1</option><option value="2">Estufa 2</option>
+          <option value="3">Estufa 3</option><option value="4">Estufa 4</option>
+          <option value="5">Estufa 5</option><option value="6">Estufa 6</option>
+          <option value="7">Estufa 7</option>
+        </select>
+      </div>
+      <div class="field"><label>Cultura</label><input id="cCultura" type="text" value="Tomate"></div>
+    </div>
+    <div class="field"><label>Variedade</label><input id="cVariedade" type="text" placeholder="ex: Frutilla"></div>
+    <div class="row2">
+      <div class="field"><label>Data do plantio</label><input id="cPlantio" type="date"></div>
+      <div class="field"><label>Início da colheita</label><input id="cInicio" type="date"></div>
+    </div>
+    <div class="field"><label>Observação</label><textarea id="cObs" rows="2"></textarea></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgCiclo').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarCiclo()">Salvar</button>
+    </div>
+    <button class="prod-del" id="btnExcluirCiclo" style="display:none" onclick="excluirCiclo()">Excluir ciclo</button>
+  </div>
+</dialog>
+
+<!-- Lançar colheita -->
+<dialog id="dlgCol">
+  <div class="sheet">
+    <h2>Lançar colheita</h2>
+    <p class="sub" id="colSub"></p>
+    <div class="field"><label>Estufa (com ciclo ativo)</label><select id="lEstufa"></select></div>
+    <div class="row2">
+      <div class="field"><label>Data</label><input id="lData" type="date"></div>
+      <div class="field"><label>Quantidade</label><input id="lQtd" type="number" step="any" inputmode="decimal" placeholder="ex: 250"></div>
+      <div class="field"><label>Un.</label>
+        <select id="lUn"><option value="KG">KG</option><option value="CX">CX</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Observação</label><input id="lObs" type="text" placeholder="opcional"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgCol').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarColheita()">Salvar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Histórico do ciclo -->
+<dialog id="dlgHist">
+  <div class="sheet">
+    <h2 id="histTitle">Histórico</h2>
+    <p class="sub" id="histSub"></p>
+    <div id="histList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgHist').close()">Fechar</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script>
+let ciclos = [];
+let colhs = [];
+let aba = 'ativa';
+let filtroEstufa = 'todas';
+let editCicloId = null;
+
+function num(v){
+  if(v===''||v==null) return 0;
+  const n = parseFloat(String(v).replace(',','.'));
+  return isNaN(n)?0:n;
+}
+function fmt(n){ return (Math.round(n*100)/100).toString().replace('.',','); }
+function escapeHtml(s){
+  return String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtData(v){
+  if(!v) return '—';
+  const dt = new Date(v.length===10 ? v+'T00:00:00' : v);
+  return isNaN(dt) ? v : dt.toLocaleDateString('pt-BR');
+}
+function hojeISO(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+async function apiGet(tipo){
+  const r = await fetch(`${API_URL}?tipo=${tipo}`);
+  return r.json();
+}
+async function apiPost(body){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)});
+  return r.json();
+}
+
+async function carregar(){
+  document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
+  try{
+    const [c, h] = await Promise.all([apiGet('ciclos'), apiGet('colheitas')]);
+    ciclos = c.data || [];
+    colhs = h.data || [];
+    render();
+  }catch(e){
+    document.getElementById('list').innerHTML = '<div class="loading">Erro ao carregar. Confira config.js e se publicou o Code.gs novo.</div>';
+  }
+}
+
+function ativoDaEstufa(e){
+  return ciclos.find(c => String(c.estufa)===String(e) && c.status !== 'encerrada');
+}
+function totaisDoCiclo(id){
+  let kg = 0, cx = 0;
+  colhs.filter(h => h.cicloId === id).forEach(h => {
+    if(String(h.unidade).toUpperCase() === 'CX') cx += num(h.quantidade);
+    else kg += num(h.quantidade);
+  });
+  return {kg, cx};
+}
+function diasColhendo(c){
+  if(!c.dataInicio) return '';
+  const ini = new Date(c.dataInicio+'T00:00:00');
+  const fim = c.dataFim ? new Date(c.dataFim+'T00:00:00') : new Date();
+  const d = Math.floor((fim - ini)/86400000);
+  return d >= 0 ? d + (d===1?' dia colhendo':' dias colhendo') : '';
+}
+function emColheita(c){
+  if(!c.dataInicio) return false;
+  return hojeISO() >= c.dataInicio;
+}
+
+function cardCiclo(c){
+  const t = totaisDoCiclo(c.id);
+  const colhendo = emColheita(c);
+  const totTxt = (t.kg>0?`${fmt(t.kg)} <small>KG</small>`:'') + (t.kg>0&&t.cx>0?' + ':'') + (t.cx>0?`${fmt(t.cx)} <small>CX</small>`:'');
+  return `
+  <div class="item">
+    <div class="item-top">
+      <span class="badge">Estufa ${escapeHtml(c.estufa)}</span>
+      <span class="status ${colhendo?'colhendo':'crescendo'}">${colhendo?'Em colheita':'Crescendo'}</span>
+    </div>
+    <h3>${escapeHtml(c.cultura||'Tomate')}${c.variedade?' · '+escapeHtml(c.variedade):''}</h3>
+    <div class="total">${totTxt || '0 <small>KG</small>'}</div>
+    <div class="meta">Plantio: ${fmtData(c.dataPlantio)} · Início: ${fmtData(c.dataInicio)}${diasColhendo(c)?' · '+diasColhendo(c):''}${c.obs?' · '+escapeHtml(c.obs):''}</div>
+    <div class="actions">
+      <button class="btn-in" onclick="openColheita('${escapeHtml(c.estufa)}')">+ Lançar</button>
+      <button class="btn-hist" onclick="openHist('${c.id}')">Histórico</button>
+      <button class="btn-end" onclick="encerrarCiclo('${c.id}')">Encerrar</button>
+      <button class="btn-edit" onclick="editarCiclo('${c.id}')">✎</button>
+    </div>
+  </div>`;
+}
+
+function render(){
+  const list = document.getElementById('list');
+  if(aba === 'hist'){
+    let fins = ciclos.filter(c => c.status === 'encerrada')
+      .sort((a,b)=> String(b.dataFim||'') < String(a.dataFim||'') ? -1 : 1);
+    if(filtroEstufa !== 'todas') fins = fins.filter(c => String(c.estufa) === filtroEstufa);
+    if(!fins.length){ list.innerHTML = '<div class="empty">Nenhuma safra encerrada ainda.</div>'; return; }
+    list.innerHTML = fins.map(c=>{
+      const t = totaisDoCiclo(c.id);
+      return `
+      <div class="item">
+        <div class="item-top">
+          <span class="badge">Estufa ${escapeHtml(c.estufa)}</span>
+          <span class="status fim">Encerrada</span>
+        </div>
+        <h3>${escapeHtml(c.cultura||'Tomate')}${c.variedade?' · '+escapeHtml(c.variedade):''}</h3>
+        <div class="total">${t.kg>0?fmt(t.kg)+' <small>KG</small>':''}${t.kg>0&&t.cx>0?' + ':''}${t.cx>0?fmt(t.cx)+' <small>CX</small>':''}</div>
+        <div class="meta">${fmtData(c.dataPlantio)} → ${fmtData(c.dataFim||c.dataInicio)}${c.obs?' · '+escapeHtml(c.obs):''}</div>
+        <div class="actions">
+          <button class="btn-hist" onclick="openHist('${c.id}')">Histórico</button>
+          <button class="btn-edit" onclick="editarCiclo('${c.id}')">✎</button>
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+  // Safra ativa: um cartão por estufa
+  let estufas = ['1','2','3','4','5','6','7'];
+  if(filtroEstufa !== 'todas') estufas = [filtroEstufa];
+  list.innerHTML = estufas.map(e=>{
+    const c = ativoDaEstufa(e);
+    if(!c) return `
+      <div class="item nociclo">
+        <div class="item-top"><span class="badge">Estufa ${e}</span></div>
+        <p style="margin:10px 0">Sem ciclo ativo.</p>
+        <div class="actions"><button class="btn-in" onclick="openCiclo('${e}')">Iniciar plantio</button></div>
+      </div>`;
+    return cardCiclo(c);
+  }).join('');
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); aba=t.dataset.f; render();
+}));
+document.getElementById('filtroEstufaSel').addEventListener('change',e=>{filtroEstufa=e.target.value;render();});
+
+// ---- Ciclo ----
+function openCiclo(estufa){
+  editCicloId = null;
+  document.getElementById('dlgCicloTitle').textContent = 'Novo ciclo';
+  document.getElementById('cEstufa').value = estufa || '1';
+  document.getElementById('cCultura').value = 'Tomate';
+  document.getElementById('cVariedade').value = '';
+  document.getElementById('cPlantio').value = hojeISO();
+  document.getElementById('cInicio').value = '';
+  document.getElementById('cObs').value = '';
+  document.getElementById('btnExcluirCiclo').style.display = 'none';
+  document.getElementById('dlgCiclo').showModal();
+}
+function editarCiclo(id){
+  const c = ciclos.find(x=>x.id===id); if(!c) return;
+  editCicloId = id;
+  document.getElementById('dlgCicloTitle').textContent = 'Editar ciclo';
+  document.getElementById('cEstufa').value = c.estufa || '1';
+  document.getElementById('cCultura').value = c.cultura || 'Tomate';
+  document.getElementById('cVariedade').value = c.variedade || '';
+  document.getElementById('cPlantio').value = c.dataPlantio || '';
+  document.getElementById('cInicio').value = c.dataInicio || '';
+  document.getElementById('cObs').value = c.obs || '';
+  document.getElementById('btnExcluirCiclo').style.display = 'block';
+  document.getElementById('dlgCiclo').showModal();
+}
+async function salvarCiclo(){
+  const estufa = document.getElementById('cEstufa').value;
+  if(!editCicloId && ativoDaEstufa(estufa)){
+    alert(`A estufa ${estufa} já tem ciclo ativo. Encerre ele antes de iniciar outro.`);
+    return;
+  }
+  const dadosForm = {
+    estufa,
+    cultura: document.getElementById('cCultura').value,
+    variedade: document.getElementById('cVariedade').value,
+    dataPlantio: document.getElementById('cPlantio').value,
+    dataInicio: document.getElementById('cInicio').value,
+    obs: document.getElementById('cObs').value,
+    status: 'ativa'
+  };
+  document.getElementById('dlgCiclo').close();
+  if(editCicloId){
+    await apiPost({tipo:'ciclos', action:'update', id:editCicloId, data:dadosForm});
+  }else{
+    await apiPost({tipo:'ciclos', action:'add', data:dadosForm});
+  }
+  editCicloId = null;
+  carregar();
+}
+async function excluirCiclo(){
+  const c = ciclos.find(x=>x.id===editCicloId); if(!c) return;
+  const n = colhs.filter(h=>h.cicloId===editCicloId).length;
+  if(!confirm(`Excluir o ciclo da estufa ${c.estufa}? (${n} lançamentos serão mantidos na planilha)`)) return;
+  document.getElementById('dlgCiclo').close();
+  await apiPost({tipo:'ciclos', action:'delete', id:editCicloId});
+  editCicloId = null;
+  carregar();
+}
+async function encerrarCiclo(id){
+  const c = ciclos.find(x=>x.id===id); if(!c) return;
+  const t = totaisDoCiclo(id);
+  if(!confirm(`Encerrar o ciclo da estufa ${c.estufa}? Total: ${fmt(t.kg)} KG${t.cx?` + ${fmt(t.cx)} CX`:''}`)) return;
+  await apiPost({tipo:'ciclos', action:'update', id, data:{status:'encerrada', dataFim:hojeISO()}});
+  carregar();
+}
+
+// ---- Lançar colheita ----
+function openColheita(estufa){
+  const ativas = ciclos.filter(c=>c.status!=='encerrada');
+  const sel = document.getElementById('lEstufa');
+  sel.innerHTML = ativas.length
+    ? ativas.map(c=>`<option value="${escapeHtml(c.estufa)}" ${String(c.estufa)===String(estufa||filtroEstufa)?'selected':''}>Estufa ${escapeHtml(c.estufa)} — ${escapeHtml(c.cultura||'Tomate')}</option>`).join('')
+    : '<option value="">(sem ciclo ativo — crie um primeiro)</option>';
+  document.getElementById('lData').value = hojeISO();
+  document.getElementById('lQtd').value = '';
+  document.getElementById('lUn').value = 'KG';
+  document.getElementById('lObs').value = '';
+  document.getElementById('colSub').textContent = ativas.length ? 'Cai no ciclo ativo da estufa.' : 'Crie um ciclo antes de lançar.';
+  document.getElementById('dlgCol').showModal();
+}
+async function salvarColheita(){
+  const estufa = document.getElementById('lEstufa').value;
+  const qtd = num(document.getElementById('lQtd').value);
+  if(!estufa){ alert('Escolha uma estufa com ciclo ativo.'); return; }
+  if(!qtd || qtd <= 0){ alert('Digite a quantidade.'); return; }
+  const ciclo = ativoDaEstufa(estufa);
+  document.getElementById('dlgCol').close();
+  await apiPost({tipo:'colheitas', action:'add', data:{
+    cicloId: ciclo ? ciclo.id : '',
+    estufa,
+    data: document.getElementById('lData').value,
+    quantidade: qtd,
+    unidade: document.getElementById('lUn').value,
+    obs: document.getElementById('lObs').value
+  }});
+  carregar();
+}
+
+// ---- Histórico do ciclo ----
+function openHist(id){
+  const c = ciclos.find(x=>x.id===id); if(!c) return;
+  document.getElementById('histTitle').textContent = `Estufa ${c.estufa} — ${c.cultura||'Tomate'}`;
+  const lista = colhs.filter(h=>h.cicloId===id || (!h.cicloId && String(h.estufa)===String(c.estufa)))
+    .sort((a,b)=> new Date(b.data||b.dataCriacao) - new Date(a.data||a.dataCriacao));
+  const t = totaisDoCiclo(id);
+  document.getElementById('histSub').textContent = lista.length
+    ? `${lista.length} lançamentos · ${fmt(t.kg)} KG${t.cx?` + ${fmt(t.cx)} CX`:''}` : 'Sem lançamentos ainda';
+  document.getElementById('histList').innerHTML = lista.length ? lista.map(h=>`
+    <div class="mov">
+      <div><b>${fmt(num(h.quantidade))} ${escapeHtml(h.unidade||'KG')}</b>
+      <small>${fmtData(h.data||h.dataCriacao)}${h.obs?' · '+escapeHtml(h.obs):''}</small></div>
+      <button class="rm" onclick="excluirColheita('${h.id}','${id}')">Excluir</button>
+    </div>`).join('') : '<div class="empty">Nenhum lançamento.</div>';
+  document.getElementById('dlgHist').showModal();
+}
+async function excluirColheita(hid, cicloId){
+  if(!confirm('Excluir este lançamento?')) return;
+  await apiPost({tipo:'colheitas', action:'delete', id:hid});
+  carregar();
+  document.getElementById('dlgHist').close();
+}
+
+// ===== IMPORTAR DO EXCEL (colar a aba SAFRA ATIVA) =====
+let impCiclos = [];
+const MESES = {jan:'01',fev:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+function parseNumExcel(s){
+  s = String(s||'').trim();
+  if(/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,''); // milhar BR
+  const n = parseFloat(s.replace(',','.'));
+  return isNaN(n)?null:n;
+}
+function parseDataExcel(s, anoRef, baseISO){
+  s = String(s||'').trim().toLowerCase();
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m){
+    let a = m[3].length===2 ? '20'+m[3] : m[3];
+    return `${a}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  m = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(m) return `${anoRef}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m = s.match(/^(\d{1,2})\/([a-zç]{3,})$/);
+  if(m){
+    const mm = MESES[m[2].slice(0,3)];
+    if(!mm) return '';
+    let iso = `${anoRef}-${mm}-${m[1].padStart(2,'0')}`;
+    if(baseISO && iso < baseISO){ iso = `${parseInt(anoRef)+1}-${mm}-${m[1].padStart(2,'0')}`; }
+    return iso;
+  }
+  return '';
+}
+function somaDias(iso, dias){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+dias);
+  return d.toISOString().slice(0,10);
+}
+function parseMatrizExcel(texto){
+  const linhas = String(texto||'').split(/\r?\n/).map(l=>l.split('\t').map(c=>c.trim())).filter(l=>l.some(c=>c));
+  if(linhas.length < 5) return {erro:'Não reconheci a planilha. Copie a aba inteira (Ctrl+A, Ctrl+C).'};
+  // acha linha do PLANTIO
+  const iPlantio = linhas.findIndex(l=>/^plantio/i.test(l[0]||''));
+  if(iPlantio < 0) return {erro:'Não achei a linha PLANTIO. Copie a partir da linha SEMANAS.'};
+  const head = linhas[iPlantio-1] || linhas[0];
+  const colEstufa = {}; // índice da coluna -> nº estufa
+  head.forEach((c,i)=>{
+    const m = String(c||'').match(/estufa\s*(\d)/i);
+    if(m) colEstufa[i] = m[1];
+  });
+  if(!Object.keys(colEstufa).length) return {erro:'Não achei as colunas ESTUFA 1..7.'};
+  const lPlantio = linhas[iPlantio] || [];
+  const lInicio = linhas[iPlantio+1] && /^inicio/i.test(linhas[iPlantio+1][0]||'') ? linhas[iPlantio+1] : [];
+  const anoRef = String(new Date().getFullYear());
+  const ciclos = [];
+  Object.entries(colEstufa).forEach(([ci, estufa])=>{
+    const plantio = parseDataExcel(lPlantio[ci]||'', anoRef, '');
+    const inicio = parseDataExcel(lInicio[ci]||'', plantio?plantio.slice(0,4):anoRef, plantio);
+    const lancs = [];
+    for(let i=iPlantio+2; i<linhas.length; i++){
+      const lin = linhas[i];
+      if(/^(total|semanas)$/i.test(lin[0]||'')) continue;
+      const sem = parseInt(lin[0]);
+      if(isNaN(sem) || sem < 1 || sem > 60) continue;
+      const m = String(lin[ci]||'').match(/([\d.,]+)\s*(kg|cx)/i);
+      if(!m) continue;
+      const qtd = parseNumExcel(m[1]);
+      if(qtd===null || qtd<=0 || !inicio) continue;
+      lancs.push({ data: somaDias(inicio,(sem-1)*7), quantidade: qtd, unidade: m[2].toUpperCase()==='CX'?'CX':'KG', obs:'Importado do Excel (semana '+sem+')' });
+    }
+    if(plantio || lancs.length) ciclos.push({ estufa, plantio, inicio, lancs });
+  });
+  if(!ciclos.length) return {erro:'Nenhum dado aproveitável (plantio ou semanas com KG/CX).'};
+  return {ciclos};
+}
+function openImp(){
+  document.getElementById('impTexto').value='';
+  document.getElementById('impStatus').textContent='';
+  document.getElementById('impPreview').innerHTML='';
+  document.getElementById('impSaveBar').style.display='none';
+  impCiclos=[];
+  document.getElementById('dlgImp').showModal();
+}
+document.getElementById('impArquivo').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  document.getElementById('impTexto').value = await f.text();
+  document.getElementById('impStatus').textContent = `Arquivo "${f.name}" carregado. Clique em Ler.`;
+  e.target.value='';
+});
+function processarImp(){
+  const r = parseMatrizExcel(document.getElementById('impTexto').value);
+  const st = document.getElementById('impStatus');
+  if(r.erro){ st.textContent = r.erro; return; }
+  const cultura = document.getElementById('impCultura').value || 'Tomate';
+  const variedade = document.getElementById('impVar').value || '';
+  impCiclos = r.ciclos.map(c=>({...c, cultura, variedade}));
+  const totalL = impCiclos.reduce((s,c)=>s+c.lancs.length,0);
+  const puladas = impCiclos.filter(c=>ativoDaEstufa(c.estufa));
+  st.textContent = `${impCiclos.length} ciclos · ${totalL} lançamentos.` +
+    (puladas.length ? `\nEstufas já com ciclo ativo serão ignoradas: ${puladas.map(c=>c.estufa).join(', ')}.` : '');
+  document.getElementById('impPreview').innerHTML = impCiclos.map((c,i)=>{
+    const s = c.lancs.reduce((a,l)=>a+(l.unidade==='CX'?0:l.quantidade),0);
+    return `<div class="imp-item"><b>Estufa ${escapeHtml(c.estufa)}</b> — plantio ${fmtData(c.plantio)} · início ${fmtData(c.inicio)}${ativoDaEstufa(c.estufa)?' · <b>JÁ TEM CICLO (será ignorada)</b>':''}
+      <small>${c.lancs.length} lançamentos · soma KG: ${fmt(s)}${c.lancs[0]?` · ex: ${fmtData(c.lancs[0].data)} = ${fmt(c.lancs[0].quantidade)} ${c.lancs[0].unidade}`:''}</small></div>`;
+  }).join('');
+  document.getElementById('impSaveBar').style.display = impCiclos.length ? 'flex' : 'none';
+}
+async function salvarImportados(){
+  if(!impCiclos.length) return;
+  const btn = document.querySelector('#impSaveBar .btn-save');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  let nc = 0, nl = 0;
+  for(const c of impCiclos){
+    if(ativoDaEstufa(c.estufa)) continue;
+    try{
+      const res = await apiPost({tipo:'ciclos', action:'add', data:{
+        estufa:c.estufa, cultura:c.cultura, variedade:c.variedade,
+        dataPlantio:c.plantio, dataInicio:c.inicio, dataFim:'', status:'ativa', obs:'Importado do Excel'
+      }});
+      nc++;
+      const cid = (res&&res.id)||'';
+      for(const l of c.lancs){
+        try{
+          await apiPost({tipo:'colheitas', action:'add', data:{
+            cicloId:cid, estufa:c.estufa, data:l.data, quantidade:l.quantidade, unidade:l.unidade, obs:l.obs
+          }});
+          nl++;
+        }catch(e){}
+      }
+      document.getElementById('impStatus').textContent = `Salvando... ${nc} ciclos, ${nl} lançamentos.`;
+    }catch(e){}
+  }
+  btn.disabled = false; btn.textContent = 'Salvar tudo';
+  document.getElementById('impStatus').textContent = `Pronto! ${nc} ciclos e ${nl} lançamentos importados.`;
+  document.getElementById('dlgImp').close();
+  carregar();
+}
+// Backup em CSV (abre no Excel)
+function baixarBackup(){
+  const csv = v => `"${String(v??'').replace(/"/g,'""')}"`;
+  let out = 'CICLOS\nestufa;cultura;variedade;plantio;inicio;fim;status;obs\n';
+  ciclos.forEach(c=>{ out += [c.estufa,c.cultura,c.variedade,c.dataPlantio,c.dataInicio,c.dataFim,c.status,c.obs].map(csv).join(';')+'\n'; });
+  out += '\nCOLHEITAS\ndata;estufa;quantidade;unidade;obs\n';
+  colhs.slice().sort((a,b)=>String(a.data)<String(b.data)?-1:1)
+    .forEach(h=>{ out += [h.data,h.estufa,h.quantidade,h.unidade,h.obs].map(csv).join(';')+'\n'; });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(["\ufeff"+out],{type:'text/csv;charset=utf-8'}));
+  a.download = `colheita-backup-${hojeISO()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+carregar();
+</script>
+<script src="sidebar.js"></script>
+</body>
+</html>
