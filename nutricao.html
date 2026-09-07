@@ -64,6 +64,9 @@
   .fab2{position:fixed; bottom:78px; right:20px; left:20px; max-width:420px; margin:0 auto; background:transparent; color:var(--leaf); border:1px dashed var(--leaf); border-radius:14px; padding:11px; font-size:13px; font-weight:600; cursor:pointer;}
   .sheet .sub{font-size:12.5px; color:#8A968A; margin:0 0 14px;}
   .imp-status{font-size:12.5px; color:#54614F; margin:4px 0 8px; white-space:pre-line;}
+  #impDrop{border:2px dashed var(--leaf); border-radius:12px; padding:18px 12px; text-align:center; font-size:14px; font-weight:600; color:var(--leaf); background:#F7FAF6; margin-bottom:12px; cursor:pointer;}
+  #impDrop small{font-weight:400; color:#8A968A;}
+  #impDrop.dragover{background:#DCEFE3; border-style:solid;}
   .imp-item{border:1px solid var(--line); border-radius:10px; padding:8px; margin-bottom:8px;}
   .imp-item .row2{margin-bottom:6px;}
   .imp-item input,.imp-item select{width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; font-family:inherit;}
@@ -88,7 +91,8 @@
 <dialog id="dlgImp">
   <div class="sheet">
     <h2>Importar plano semanal</h2>
-    <p class="sub">Cole o texto do técnico, anexe um .txt/.csv ou tire foto da folha. Confira abaixo e salve tudo de uma vez como pendente.</p>
+    <p class="sub">Cole o texto do técnico, arraste o arquivo/foto pra dentro, anexe ou tire foto. Confira abaixo e salve tudo de uma vez como pendente.</p>
+    <div id="impDrop">📥 Arraste aqui o arquivo ou a foto<br><small>ou clique para escolher · ou cole com Ctrl+V</small></div>
     <div class="field"><label>Texto do plano</label><textarea id="impTexto" rows="6" placeholder="Cole aqui. Ex:&#10;FERTIRRIGAÇÃO – ESTUFA 7 – Semana 07/09 a 11/09/2026&#10;Segunda-feira: Nitrato de cálcio — 8 kg / Soil K — 3 L"></textarea></div>
     <div class="row2">
       <div class="field"><label>Arquivo texto/CSV</label><input id="impArquivo" type="file" accept=".txt,.csv,.md"></div>
@@ -369,15 +373,19 @@ function openImp(){
   impItens=[];
   document.getElementById('dlgImp').showModal();
 }
-document.getElementById('impArquivo').addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const txt = await f.text();
-  document.getElementById('impTexto').value = txt;
-  document.getElementById('impStatus').textContent = `Arquivo "${f.name}" carregado. Clique em "Ler texto".`;
-});
-let tesseractLoading = null;
-document.getElementById('impFoto').addEventListener('change', async (e)=>{
-  const f = e.target.files[0]; if(!f) return;
+function impReceberArquivo(f){
+  if(!f) return;
+  if(f.type.startsWith('image/')){ lerFotoFile(f); return; }
+  carregarTextoFile(f);
+}
+async function carregarTextoFile(f){
+  try{
+    const txt = await f.text();
+    document.getElementById('impTexto').value = txt;
+    document.getElementById('impStatus').textContent = `Arquivo "${f.name}" carregado. Clique em "Ler texto".`;
+  }catch(e){ document.getElementById('impStatus').textContent = 'Não consegui ler esse arquivo.'; }
+}
+async function lerFotoFile(f){
   const st = document.getElementById('impStatus');
   try{
     st.textContent = 'Lendo foto... (pode levar ~20s na primeira vez)';
@@ -393,7 +401,52 @@ document.getElementById('impFoto').addEventListener('change', async (e)=>{
     document.getElementById('impTexto').value = data.text || '';
     st.textContent = 'Foto lida! Confira o texto e clique em "Ler texto".';
   }catch(err){ st.textContent = 'Não consegui ler a foto. Tente uma foto mais nítida ou cole o texto.'; }
+}
+document.getElementById('impArquivo').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  await carregarTextoFile(f);
   e.target.value='';
+});
+document.getElementById('impFoto').addEventListener('change', async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  await lerFotoFile(f);
+  e.target.value='';
+});
+// Arrastar e soltar + clique na área
+(function(){
+  const drop = document.getElementById('impDrop');
+  if(!drop) return;
+  drop.addEventListener('click', ()=>{
+    const txt = document.getElementById('impTexto').value.trim();
+    if(txt){ processarTexto(); return; }
+    document.getElementById('impFoto').click();
+  });
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, (e)=>{ e.preventDefault(); drop.classList.add('dragover'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, (e)=>{ e.preventDefault(); drop.classList.remove('dragover'); }));
+  drop.addEventListener('drop', (e)=>{
+    const files = (e.dataTransfer && e.dataTransfer.files) || [];
+    if(files.length){ impReceberArquivo(files[0]); return; }
+    const txt = e.dataTransfer ? e.dataTransfer.getData('text') : '';
+    if(txt){
+      const ta = document.getElementById('impTexto');
+      ta.value = (ta.value ? ta.value + '\n' : '') + txt;
+      document.getElementById('impStatus').textContent = 'Texto soltado na área. Clique em "Ler texto".';
+    }
+  });
+})();
+// Colar com Ctrl+V (texto ou print da folha)
+document.getElementById('dlgImp').addEventListener('paste', (e)=>{
+  const cd = e.clipboardData; if(!cd) return;
+  const files = cd.files || [];
+  for(const f of files){
+    if(f.type && f.type.startsWith('image/')){ e.preventDefault(); lerFotoFile(f); return; }
+  }
+  const items = cd.items || [];
+  for(const it of items){
+    if(it.type && it.type.startsWith('image/')){
+      const f = it.getAsFile(); if(f){ e.preventDefault(); lerFotoFile(f); return; }
+    }
+  }
 });
 function dataDiaSemana(nome, base){
   const mapa = {domingo:0, segunda:1, terca:2, 'terça':2, quarta:3, quinta:4, sexta:5, sabado:6, 'sábado':6};
