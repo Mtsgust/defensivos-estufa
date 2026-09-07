@@ -270,8 +270,9 @@ const REFERENCIA = {
     car: '7 dias (tomate)',
     link: 'https://www.agrolink.com.br/agrolinkfito/produto/nativo_5869.html' },
   'Elatus': { ia: 'Benzovindiflupir + azoxistrobina', tox: 'Categoria 4 — Pouco Tóxico',
-    dose: 'Sem registro para tomate (registrado p/ soja, milho, café e grãos) — não usar sem orientação',
-    car: '', link: '' },
+    dose: 'Registrado para tomate (bula jan/2026, máx. 3 aplicações) — confirmar dose no rótulo',
+    car: 'Confirmar no rótulo (tomate)',
+    link: 'https://agrofit.agricultura.gov.br/agrofit_cons/agrofit.ap_download_blob_agrofit?p_id_file=542127&p_nm_file=F1956631358%2FELATUS_BulaCompleta_09.01.2026.pdf' },
   'Kasumin': { ia: 'Casugamicina', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
     dose: '300 mL/100L de água (tomate — cancro bacteriano)',
     car: '1 dia (tomate)',
@@ -465,19 +466,27 @@ async function salvarNovo(){
   render();
 }
 
+let completando = false;
 async function completarPadrao(){
+  if(completando) return; // ignora clique duplo
   const nomesExistentes = new Set(lista.map(p => p.nome));
   const faltando = BULARIO_SEED.filter(([nome]) => !nomesExistentes.has(nome));
   if(faltando.length === 0){ alert('Já está tudo lá — nenhum produto padrão faltando.'); return; }
   if(!confirm(`Faltam ${faltando.length} produtos da lista padrão. Adicionar agora?`)) return;
-  for(const [nome, categoria] of faltando){
-    const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:'' };
-    aplicarRef(novo);
-    try{
-      const res = await apiCall('add', { data: novo });
-      novo.id = res.id;
-      lista.push(novo);
-    }catch(e){ /* segue pro próximo */ }
+  completando = true;
+  try{
+    for(const [nome, categoria] of faltando){
+      if(lista.some(p => p.nome === nome)) continue; // re-checa (segurança contra duplicar)
+      const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:'' };
+      aplicarRef(novo);
+      try{
+        const res = await apiCall('add', { data: novo });
+        novo.id = res.id;
+        lista.push(novo);
+      }catch(e){ /* segue pro próximo */ }
+    }
+  }finally{
+    completando = false;
   }
   render();
   alert('Pronto! Lista completada.');
