@@ -71,6 +71,10 @@
   .imp-item .row2{margin-bottom:6px;}
   .imp-item input,.imp-item select{width:100%; padding:8px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff; font-family:inherit;}
   .imp-rm{width:100%; padding:7px; border:1px solid var(--danger); background:transparent; color:var(--danger); border-radius:8px; font-size:12px; font-weight:600;}
+  .estufa-filter{display:flex; align-items:center; gap:8px; margin:10px 20px 0;}
+  .estufa-filter label{font-size:12px; color:#CFE0D3;}
+  .estufa-filter select{flex:1; padding:8px 10px; border-radius:8px; border:none; font-size:13px; background:rgba(255,255,255,.12); color:#fff;}
+  .estufa-filter select option{color:#000;}
 </style>
 </head>
 <body>
@@ -81,6 +85,19 @@
     <div class="tab active" data-f="pendente">Pendentes</div>
     <div class="tab" data-f="feito">Feitas</div>
     <div class="tab" data-f="todas">Todas</div>
+  </div>
+  <div class="estufa-filter">
+    <label for="filtroEstufaSel">Estufa</label>
+    <select id="filtroEstufaSel">
+      <option value="todas">Todas as estufas</option>
+      <option value="1">Estufa 1</option>
+      <option value="2">Estufa 2</option>
+      <option value="3">Estufa 3</option>
+      <option value="4">Estufa 4</option>
+      <option value="5">Estufa 5</option>
+      <option value="6">Estufa 6</option>
+      <option value="7">Estufa 7</option>
+    </select>
   </div>
 </header>
 <main id="list"><div class="loading">Carregando…</div></main>
@@ -183,6 +200,7 @@
 <script>
 let dados = [];
 let filtro = 'pendente';
+let filtroEstufa = 'todas';
 
 // ===== INTEGRAÇÃO ESTOQUE (baixa automática) =====
 async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId, obs) {
@@ -254,6 +272,7 @@ function render(){
   const list = document.getElementById('list');
   let itens = dados;
   if(filtro !== 'todas') itens = dados.filter(d => d.status === filtro);
+  if(filtroEstufa !== 'todas') itens = itens.filter(d => String(d.estufa||'') === filtroEstufa);
   if(itens.length === 0){
     list.innerHTML = '<div class="empty">Nada por aqui.</div>';
     return;
@@ -299,6 +318,11 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
   filtro = t.dataset.f;
   render();
 }));
+
+document.getElementById('filtroEstufaSel').addEventListener('change', (e) => {
+  filtroEstufa = e.target.value;
+  render();
+});
 
 function hojeISO(){
   const d = new Date();
