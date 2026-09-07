@@ -59,6 +59,7 @@
   .sheet-actions button{flex:1; padding:12px; border-radius:9px; border:none; font-size:15px; font-weight:600; cursor:pointer;}
   .btn-cancel{background:#EDEFEA; color:var(--ink);}
   .btn-save{background:var(--leaf); color:#fff;}
+  .prod-del{width:100%; padding:10px; border:1px solid var(--danger); border-radius:9px; background:transparent; color:var(--danger); font-size:13.5px; font-weight:600; margin-top:10px; cursor:pointer;}
   .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
   .mov{display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px;}
   .mov:last-child{border-bottom:none;}
@@ -123,6 +124,7 @@
       <button class="btn-cancel" onclick="document.getElementById('dlgProduto').close()">Cancelar</button>
       <button class="btn-save" onclick="salvarProduto()">Salvar</button>
     </div>
+    <button class="prod-del" id="btnExcluirProd" style="display:none" onclick="excluirProduto()">Excluir produto</button>
   </div>
 </dialog>
 
@@ -184,6 +186,28 @@ function fmtData(v){
   return isNaN(dt) ? v : dt.toLocaleDateString('pt-BR');
 }
 
+// Apelidos: o plano às vezes traz "B+" em vez de "Nutrilife B+",
+// e "Soil Vita Cal" é lançado como "Carbonato de cálcio".
+const APELIDOS = {
+  'b': 'Nutrilife B+',
+  'nutrilifeb': 'Nutrilife B+',
+  'soilvacal': 'Carbonato de cálcio',
+  'soilvita': 'Carbonato de cálcio',
+  'carbonatodecalcio': 'Carbonato de cálcio'
+};
+function chave(s){
+  return String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+}
+function nomeOficial(nome){
+  return APELIDOS[chave(nome)] || String(nome||'').trim();
+}
+function movsDoProduto(p){
+  return movs.filter(m=>m.produtoId===p.id || chave(m.produtoNome)===chave(p.nome));
+}
+function totalComprado(p){
+  return movsDoProduto(p).reduce((s,m)=> s + (m.tipo==='entrada'?num(m.quantidade):0), 0);
+}
+
 async function apiGet(tipo){
   const r = await fetch(`${API_URL}?tipo=${tipo}`);
   return r.json();
@@ -225,6 +249,11 @@ function render(){
   list.innerHTML = itens.map(p=>{
     const st = statusOf(p);
     const cls = st.k==='low'?'low':(st.k==='zero'?'zero':'');
+    const comprado = totalComprado(p);
+    const saldoTxt = comprado > 0
+      ? `${fmt(num(p.estoqueAtual))} <small>/ ${fmt(comprado)} ${escapeHtml(p.unidade||'')}</small>`
+      : `${fmt(num(p.estoqueAtual))} <small>${escapeHtml(p.unidade||'')}</small>`;
+    const dispTxt = comprado > 0 ? `Disponível ${fmt(num(p.estoqueAtual))} de ${fmt(comprado)} ${escapeHtml(p.unidade||'')} · ` : '';
     return `
     <div class="item ${cls}">
       <div class="item-top">
@@ -232,8 +261,8 @@ function render(){
         <span class="alert ${st.k}">${st.label}</span>
       </div>
       <h3>${escapeHtml(p.nome)}</h3>
-      <div class="saldo">${fmt(num(p.estoqueAtual))} <small>${escapeHtml(p.unidade||'')}</small></div>
-      <div class="meta">Mínimo: ${fmt(num(p.estoqueMinimo))} ${escapeHtml(p.unidade||'')} ${p.fornecedor?' · '+escapeHtml(p.fornecedor):''}</div>
+      <div class="saldo">${saldoTxt}</div>
+      <div class="meta">${dispTxt}Mínimo: ${fmt(num(p.estoqueMinimo))} ${escapeHtml(p.unidade||'')} ${p.fornecedor?' · '+escapeHtml(p.fornecedor):''}</div>
       <div class="actions">
         <button class="btn-in" onclick="openMov('${p.id}','entrada')">+ Entrada</button>
         <button class="btn-out" onclick="openMov('${p.id}','saida')">− Saída</button>
@@ -254,6 +283,7 @@ document.getElementById('filtroCat').addEventListener('change',e=>{filtroCat=e.t
 // ---- Produto ----
 function openProduto(){
   editandoId=null;
+  document.getElementById('btnExcluirProd').style.display='none';
   document.getElementById('dlgProdTitle').textContent='Novo produto';
   document.getElementById('pNome').value='';
   document.getElementById('pCategoria').value='Defensivo';
@@ -275,11 +305,28 @@ function editarProduto(id){
   document.getElementById('pMinimo').value=p.estoqueMinimo||0;
   document.getElementById('pFornecedor').value=p.fornecedor||'';
   document.getElementById('pObs').value=p.obs||'';
+  document.getElementById('btnExcluirProd').style.display='block';
   document.getElementById('dlgProduto').showModal();
 }
+async function excluirProduto(){
+  const p = estoque.find(x=>x.id===editandoId); if(!p) return;
+  const s = num(p.estoqueAtual);
+  if(!confirm(`Excluir "${p.nome}" do estoque?${s!==0?` (saldo atual: ${fmt(s)} ${p.unidade||''})`:''}\nO histórico de movimentações dele será mantido na planilha.`)) return;
+  document.getElementById('dlgProduto').close();
+  await apiPost({tipo:'estoque', action:'delete', id:editandoId});
+  editandoId = null;
+  carregar();
+}
 async function salvarProduto(){
-  const nome = document.getElementById('pNome').value.trim();
+  let nome = nomeOficial(document.getElementById('pNome').value.trim());
   if(!nome){ alert('Digite o nome do produto.'); return; }
+  if(!editandoId){
+    const dup = estoque.find(p => chave(p.nome) === chave(nome));
+    if(dup){
+      alert(`"${dup.nome}" já existe no estoque (${fmt(num(dup.estoqueAtual))} ${dup.unidade||''}). Use "+ Entrada" nele em vez de criar de novo.`);
+      return;
+    }
+  }
   const dadosForm = {
     nome,
     categoria: document.getElementById('pCategoria').value,
@@ -344,13 +391,18 @@ async function salvarMov(){
 function openHist(id){
   const p = estoque.find(x=>x.id===id); if(!p) return;
   document.getElementById('histTitle').textContent = p.nome;
-  const lista = movs.filter(m=>m.produtoId===id || String(m.produtoNome).toLowerCase()===String(p.nome).toLowerCase())
-    .sort((a,b)=> new Date(b.dataCriacao)-new Date(a.dataCriacao)).slice(0,50);
-  document.getElementById('histSub').textContent = lista.length? `${lista.length} últimas movimentações` : 'Sem movimentações ainda';
+  // Saldo após cada movimentação (da mais antiga pra mais nova, partindo do zero)
+  const todas = movsDoProduto(p).sort((a,b)=> new Date(a.dataCriacao)-new Date(b.dataCriacao));
+  let acc = 0;
+  const saldoDepois = {};
+  todas.forEach(m=>{ acc += (m.tipo==='entrada'?num(m.quantidade):-num(m.quantidade)); saldoDepois[m.id] = acc; });
+  const lista = todas.sort((a,b)=> new Date(b.dataCriacao)-new Date(a.dataCriacao)).slice(0,50);
+  document.getElementById('histSub').textContent = todas.length? `${todas.length} movimentações · disponível ${fmt(num(p.estoqueAtual))} ${p.unidade||''}` : 'Sem movimentações ainda';
   document.getElementById('histList').innerHTML = lista.length? lista.map(m=>`
     <div class="mov">
       <div><b class="${m.tipo==='entrada'?'q-in':'q-out'}">${m.tipo==='entrada'?'+':'−'} ${fmt(num(m.quantidade))} ${escapeHtml(m.unidade||'')}</b>
-      <small>${fmtData(m.dataCriacao)} · ${escapeHtml(m.origem||'manual')}${m.obs?' · '+escapeHtml(m.obs):''}</small></div>
+      <small>${fmtData(m.dataCriacao)} · ${escapeHtml(m.origem||'manual')}${m.obs?' · '+escapeHtml(m.obs):''}</small>
+      <small>ficou ${fmt(saldoDepois[m.id] ?? 0)} ${escapeHtml(p.unidade||m.unidade||'')} disponível</small></div>
     </div>`).join('') : '<div class="empty">Nenhuma movimentação.</div>';
   document.getElementById('dlgHist').showModal();
 }

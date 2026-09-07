@@ -144,7 +144,7 @@
     </div>
     <div class="field">
       <label>Produto / insumo</label>
-      <input id="fProduto" type="text" placeholder="ex: Trichoderma, gesso agrícola...">
+      <input id="fProduto" type="text" list="dlEstoque" autocomplete="off" placeholder="ex: Trichoderma, gesso agrícola...">
     </div>
     <div class="field">
       <label>Dose (texto livre)</label>
@@ -179,6 +179,7 @@
 </dialog>
 
 <script src="config.js"></script>
+<datalist id="dlEstoque"></datalist>
 <script>
 let dados = [];
 let filtro = 'pendente';
@@ -195,6 +196,17 @@ async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId,
     })});
   } catch(e) { console.warn('Falha ao dar baixa no estoque:', produtoNome, e); }
 }
+
+// Autocompletar com os nomes cadastrados no estoque (evita duplicados por erro de digitação)
+async function carregarNomesEstoque(){
+  try{
+    const r = await fetch(`${API_URL}?tipo=estoque`);
+    const j = await r.json();
+    const dl = document.getElementById('dlEstoque');
+    if(dl) dl.innerHTML = (j.data||[]).map(p => `<option value="${escapeHtml(p.nome)}">`).join('');
+  }catch(e){}
+}
+carregarNomesEstoque();
 
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
@@ -448,8 +460,7 @@ document.getElementById('dlgImp').addEventListener('paste', (e)=>{
     }
   }
 });
-function dataDiaSemana(nome, base){
-  const mapa = {domingo:0, segunda:1, terca:2, 'terça':2, quarta:3, quinta:4, sexta:5, sabado:6, 'sábado':6};
+function dataDiaSemana(nome, base){  const mapa = {domingo:0, segunda:1, terca:2, 'terça':2, quarta:3, quinta:4, sexta:5, sabado:6, 'sábado':6};
   const k = Object.keys(mapa).find(d => nome.startsWith(d));
   if(k === undefined) return '';
   if(base){
@@ -460,6 +471,20 @@ function dataDiaSemana(nome, base){
   const diff = (mapa[k] - hoje.getDay() + 7) % 7;
   const dt = new Date(hoje); dt.setDate(hoje.getDate() + diff);
   return dt.toISOString().slice(0,10);
+}
+// Apelidos: "B+" vira "Nutrilife B+", "Soil Vita Cal" vira "Carbonato de cálcio"
+const APELIDOS = {
+  'b': 'Nutrilife B+',
+  'nutrilifeb': 'Nutrilife B+',
+  'soilvacal': 'Carbonato de cálcio',
+  'soilvita': 'Carbonato de cálcio',
+  'carbonatodecalcio': 'Carbonato de cálcio'
+};
+function chaveNome(s){
+  return String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+}
+function nomeOficial(nome){
+  return APELIDOS[chaveNome(nome)] || String(nome||'').trim();
 }
 function parsePlanoSemanal(texto){
   const raw = String(texto||'');
@@ -518,6 +543,7 @@ function parsePlanoSemanal(texto){
       .replace(/[-–—•|:;.,\s]+$/,'').trim();
     if(prod.length < 3) continue;
     if(/^(fertirrigação|fertirrigacao|tratamento|biológico|biologico|outro)$/i.test(prod)) continue;
+    prod = nomeOficial(prod);
     for(const e of estufaCtx){
       itens.push({ estufa:e, tipoTarefa:tipoCtx, produto:prod.slice(0,60), dose: mDose?mDose[0]:'', qtd, unidade:un, data:dataCtx, obs:'Plano semanal' });
     }
