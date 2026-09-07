@@ -1,66 +1,71 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>Estufas — Controle</title>
-<style>
-  :root{
+<HTML língua="pt-BR">
+<cabeça>
+<meta conjunto de caracteres="UTF-8">
+<meta nome="janela de visualização" conteúdo="largura=largura do dispositivo, escala inicial=1, escala máxima=1">
+<título>Estufas — Controle</título>
+<estilo>
+  :raiz{
     --bg:#F2F5EF;
-    --ink:#1D2B22;
-    --leaf:#234D35;
-    --leaf-dark:#173425;
-    --paper:#FFFFFF;
-    --line:#DCE3D8;
+    --tinta:#1D2B22;
+    --folha:#234D35;
+    --folha-escura:#173425;
+    --papel:#FFFFFF;
+    --linha:#DCE3D8;
   }
-  *{box-sizing:border-box;}
-  body{
-    margin:0; background:var(--bg); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    min-height:100vh; display:flex; flex-direction:column; align-items:center;
-    padding:32px 20px;
+  *{dimensionamento de caixa:caixa de fronteira;}
+  corpo{
+    margem:0; fundo:var(--bg); cor:var(--tinta);
+    família de fontes:-sistema apple,Fonte do sistema BlinkMac,"UI de sego",Roboto,sem serifa;
+    alta média:100vh; exibir:flexível; direção flexível:coluna; alinhar itens:centro;
+    enchimento:32px 20px;
   }
-  .eyebrow{
-    font-family:ui-monospace,"SF Mono",Menlo,monospace;
-    font-size:12px; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--leaf); margin-bottom:6px;
+  .sobrancelha{
+    família de fontes:ui-monoespacial,"SF Mono",Menlo,monoespaçado;
+    tamanho da fonte:12px; espaçamento entre letras:.14em; transformação de texto:maiúsculas;
+    cor:var(--folha); margem inferior:6px;
   }
-  h1{font-size:26px; margin:0 0 28px; text-align:center;}
-  .cards{width:100%; max-width:420px; display:flex; flex-direction:column; gap:16px;}
-  a.card{
-    display:block; background:var(--paper); border:1px solid var(--line);
-    border-radius:14px; padding:22px 20px; text-decoration:none; color:var(--ink);
-    box-shadow:0 1px 2px rgba(23,52,37,.06);
+  h1{tamanho da fonte:26px; março:0 0 28px; alinhamento de texto:centro;}
+  .cartas{largura:100%; largura máxima:420px; exibir:flexível; direção flexível:coluna; lacuna:16px;}
+  a.cartão{
+    exibir:bloquear; fundo:var(--papel); fronteira:1px sólido var(--linha);
+    raio de borda:14px; enchimento:22px 20px; decoração de texto:nenhum; cor:var(--tinta);
+    caixa-sombra:0 1px 2px RGBA(23,52,37,.06);
   }
-  a.card:active{transform:scale(.98);}
-  .card .tag{
-    display:inline-block; font-family:ui-monospace,monospace; font-size:11px;
-    background:var(--leaf); color:#fff; padding:2px 8px; border-radius:5px;
-    letter-spacing:.06em; margin-bottom:10px;
+  a.cartão:ativo{transformar:escala(.98);}
+  .cartão .etiqueta{
+    expor:bloco em linha; família de fontes:ui-monoespacial,monoespaçado; tamanho da fonte:11px;
+    fundo:var(--folha); cor:#fff; enchimento:2px 8px; raio de borda:5px;
+    espaçamento entre letras:.06em; margem inferior:10px;
   }
-  .card h2{margin:0 0 6px; font-size:19px; color:var(--leaf-dark);}
-  .card p{margin:0; font-size:14px; color:#54614F;}
-</style>
-</head>
-<body>
-  <div class="eyebrow">Controle das estufas</div>
+  .cartão h2{margem:0 0 6px; tamanho da fonte:19px; cor:var(--folha-escura);}
+  .cartão p{margem:0; tamanho da fonte:14px; cor:#54614F;}
+</estilo>
+</caboça>
+<corpo>
+  <dividir classe="sobrancelha">Controle das estufas</dividir>
   <h1>O que você vai registrar?</h1>
-  <div class="cards">
-    <a class="card" href="pulverizacoes.html">
-      <span class="tag">DEFENSIVOS</span>
+  <dividir classe="cartões">
+    <a classe="cartão" href="pulverizacoes.html">
+      <extensão classe="etiqueta">DEFENSIVOS</extensão>
       <h2>Pulverizações</h2>
-      <p>Registrar aplicações feitas e marcar o que ainda precisa pulverizar.</p>
+      <p>Como aplicações do registrador fazem e marcam o que ainda precisa pulverizar.</p>
     </a>
-    <a class="card" href="nutricao.html">
-      <span class="tag">SOLO · BIOLÓGICOS</span>
+    <a classe="cartão" href="nutricao.html">
+      <extensão classe="etiqueta">SOLO · BIOLÓGICOS</extensão>
       <h2>Nutrição</h2>
       <p>Lançar o plano semanal do técnico e marcar tratamento de solo, biológicos e afins.</p>
     </a>
-    <a class="card" href="bulario.html">
-      <span class="tag">REFERÊNCIA</span>
+    <a classe="cartão" href="bulario.html">
+      <extensão classe="etiqueta">REFERÊNCIA</extensão>
       <h2>Bulário</h2>
       <p>Consultar e editar os produtos do seu estoque: fungicidas, inseticidas e acaricidas.</p>
     </a>
-  </div>
-</body>
-</html>
+    <a classe="cartão" href="estoque.html">
+  <extensão classe="etiqueta">SALDO · ENTRADAS</extensão>
+  <h2>Estoque</h2>
+  <p>Ver saldo, dar entrada de compras e saúde de nós. Alerta de estoque baixo.</p>
+    </a>
+  </dividir>
+</corpo>
+</HTML>
