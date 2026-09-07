@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Estoque</title>
+<style>
+  :root{
+    --bg:#F2F5EF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --paper:#FFFFFF; --line:#DCE3D8; --pend:#C68A2E; --feito:#3D7A5C; --danger:#B5432F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding-bottom:100px;}
+  header{background:var(--leaf-dark); color:#fff; padding:16px 20px 20px; position:sticky; top:0; z-index:5;}
+  header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
+  header h1{margin:6px 0 0; font-size:20px;}
+  header p{margin:4px 0 0; font-size:12.5px; color:#CFE0D3;}
+  .tabs{display:flex; gap:8px; margin:14px 20px 0;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer; color:var(--ink);}
+  .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
+  .filters{margin:10px 20px 0; display:flex; gap:8px;}
+  .filters input,.filters select{padding:10px 12px; border-radius:9px; border:none; font-size:14px; background:rgba(255,255,255,.12); color:#fff;}
+  .filters input{flex:2;} .filters select{flex:1;}
+  .filters input::placeholder{color:#CFE0D3;}
+  .filters select option{color:#000;}
+  main{padding:16px 20px;}
+  .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
+  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
+  .item.low{border-color:#E5B25E; background:#FFFDF6;}
+  .item.zero{border-color:#E08A7A; background:#FFF9F7;}
+  .item-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .cat{font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; background:#E4EFE6; color:var(--feito);}
+  .alert{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
+  .alert.ok{background:#DCEFE3; color:var(--feito);}
+  .alert.low{background:#FBEBD3; color:var(--pend);}
+  .alert.zero{background:#F7DAD2; color:var(--danger);}
+  .item h3{margin:8px 0 2px; font-size:16px;}
+  .saldo{font-size:22px; font-weight:700; margin:6px 0 0;}
+  .saldo small{font-size:13px; font-weight:500; color:#54614F;}
+  .meta{font-size:12px; color:#8A968A; margin-top:4px;}
+  .actions{display:flex; gap:8px; margin-top:10px;}
+  .actions button{flex:1; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-in{background:var(--feito); color:#fff; border:none;}
+  .btn-out{background:transparent; color:var(--pend); border:1px solid var(--pend) !important;}
+  .btn-hist{background:transparent; color:var(--leaf); border:1px solid var(--leaf) !important;}
+  .btn-edit{background:transparent; color:#8A968A; border:1px solid var(--line) !important; flex:0 0 44px !important;}
+  .fab{position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto; background:var(--leaf); color:#fff; border:none; border-radius:14px; padding:16px; font-size:16px; font-weight:600; box-shadow:0 4px 14px rgba(23,52,37,.35); cursor:pointer;}
+  .fab2{position:fixed; bottom:78px; right:20px; left:20px; max-width:420px; margin:0 auto; background:transparent; color:var(--leaf); border:1px dashed var(--leaf); border-radius:14px; padding:11px; font-size:13px; font-weight:600; cursor:pointer;}
+  dialog{border:none; border-radius:16px; width:min(92vw,420px); padding:0;}
+  dialog::backdrop{background:rgba(23,52,37,.45);}
+  .sheet{padding:20px; max-height:85vh; overflow-y:auto;}
+  .sheet h2{margin:0 0 4px; font-size:18px;}
+  .sheet .sub{font-size:12.5px; color:#8A968A; margin:0 0 14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:#54614F; margin-bottom:5px;}
+  .field input,.field select,.field textarea{width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:15px; background:#fff; font-family:inherit;}
+  .row2{display:flex; gap:10px;} .row2 .field{flex:1;}
+  .sheet-actions{display:flex; gap:10px; margin-top:14px;}
+  .sheet-actions button{flex:1; padding:12px; border-radius:9px; border:none; font-size:15px; font-weight:600; cursor:pointer;}
+  .btn-cancel{background:#EDEFEA; color:var(--ink);}
+  .btn-save{background:var(--leaf); color:#fff;}
+  .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
+  .mov{display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .mov:last-child{border-bottom:none;}
+  .mov .q-in{color:var(--feito); font-weight:700;}
+  .mov .q-out{color:var(--danger); font-weight:700;}
+  .mov small{display:block; color:#8A968A; font-size:11.5px;}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html">‹ voltar</a>
+  <h1>Estoque</h1>
+  <p>Entradas, saídas e saldo. Pulverizações e nutrições feitas dão baixa sozinhas.</p>
+  <div class="tabs">
+    <div class="tab active" data-f="todos">Todos</div>
+    <div class="tab" data-f="baixo">Estoque baixo</div>
+    <div class="tab" data-f="zerado">Zerado / negativo</div>
+  </div>
+  <div class="filters">
+    <input id="busca" type="text" placeholder="Buscar produto...">
+    <select id="filtroCat">
+      <option value="todas">Todas categ.</option>
+      <option value="Defensivo">Defensivo</option>
+      <option value="Fertilizante">Fertilizante</option>
+      <option value="Biológico">Biológico</option>
+      <option value="Outro">Outro</option>
+    </select>
+  </div>
+</header>
+
+<main id="list"><div class="loading">Carregando…</div></main>
+
+<button class="fab2" onclick="importarBulario()">Importar produtos do Bulário (saldo zero)</button>
+<button class="fab" onclick="openProduto()">+ Novo produto</button>
+
+<!-- Cadastro / edição de produto -->
+<dialog id="dlgProduto">
+  <div class="sheet">
+    <h2 id="dlgProdTitle">Novo produto</h2>
+    <p class="sub">Saldo inicial vira uma movimentação de entrada.</p>
+    <div class="field"><label>Nome do produto</label><input id="pNome" type="text" placeholder="ex: Amistar Top"></div>
+    <div class="row2">
+      <div class="field"><label>Categoria</label>
+        <select id="pCategoria">
+          <option>Defensivo</option><option>Fertilizante</option><option>Biológico</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="field"><label>Unidade</label>
+        <select id="pUnidade">
+          <option value="mL">mL</option><option value="L">L</option>
+          <option value="g">g</option><option value="kg">kg</option><option value="un">un</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Saldo inicial</label><input id="pSaldo" type="number" step="any" inputmode="decimal" value="0"></div>
+      <div class="field"><label>Estoque mínimo (alerta)</label><input id="pMinimo" type="number" step="any" inputmode="decimal" value="0"></div>
+    </div>
+    <div class="field"><label>Fornecedor</label><input id="pFornecedor" type="text" placeholder="opcional"></div>
+    <div class="field"><label>Observação</label><textarea id="pObs" rows="2"></textarea></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgProduto').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarProduto()">Salvar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Entrada / saída -->
+<dialog id="dlgMov">
+  <div class="sheet">
+    <h2 id="movTitle">Movimentação</h2>
+    <p class="sub" id="movSub"></p>
+    <div class="row2">
+      <div class="field"><label>Tipo</label>
+        <select id="mTipo"><option value="entrada">Entrada (compra)</option><option value="saida">Saída (uso/ajuste)</option></select>
+      </div>
+      <div class="field"><label>Quantidade</label><input id="mQtd" type="number" step="any" inputmode="decimal" placeholder="ex: 500"></div>
+    </div>
+    <div class="field"><label>Motivo / observação</label><input id="mObs" type="text" placeholder="ex: compra, uso estufa 3..."></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgMov').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarMov()">Confirmar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Histórico -->
+<dialog id="dlgHist">
+  <div class="sheet">
+    <h2 id="histTitle">Histórico</h2>
+    <p class="sub" id="histSub"></p>
+    <div id="histList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgHist').close()">Fechar</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script>
+let estoque = [];
+let movs = [];
+let filtro = 'todos';
+let busca = '';
+let filtroCat = 'todas';
+let movProdutoId = null;
+let editandoId = null;
+
+function num(v){
+  if(v===''||v==null) return 0;
+  const n = parseFloat(String(v).replace(',','.'));
+  return isNaN(n)?0:n;
+}
+function fmt(n){
+  return (Math.round(n*100)/100).toString().replace('.',',');
+}
+function escapeHtml(s){
+  return String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtData(v){
+  if(!v) return '';
+  const dt = new Date(v.length===10 ? v+'T00:00:00' : v);
+  return isNaN(dt) ? v : dt.toLocaleDateString('pt-BR');
+}
+
+async function apiGet(tipo){
+  const r = await fetch(`${API_URL}?tipo=${tipo}`);
+  return r.json();
+}
+async function apiPost(body){
+  const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)});
+  return r.json();
+}
+
+async function carregar(){
+  document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
+  try{
+    const [e, m] = await Promise.all([apiGet('estoque'), apiGet('movimentacoes')]);
+    estoque = e.data || [];
+    movs = m.data || [];
+    render();
+  }catch(err){
+    document.getElementById('list').innerHTML = '<div class="loading">Erro ao carregar. Confira config.js e se publicou o Code.gs novo.</div>';
+  }
+}
+
+function statusOf(p){
+  const s = num(p.estoqueAtual), min = num(p.estoqueMinimo);
+  if(s <= 0) return {k:'zero', label:'Zerado'};
+  if(min > 0 && s <= min) return {k:'low', label:'Estoque baixo'};
+  return {k:'ok', label:'OK'};
+}
+
+function render(){
+  const list = document.getElementById('list');
+  let itens = estoque.slice().sort((a,b)=> String(a.nome).localeCompare(String(b.nome)));
+  if(filtro==='baixo') itens = itens.filter(p=>{ const st=statusOf(p); return st.k==='low'; });
+  if(filtro==='zerado') itens = itens.filter(p=> num(p.estoqueAtual) <= 0);
+  if(filtroCat!=='todas') itens = itens.filter(p=> (p.categoria||'Outro')===filtroCat);
+  if(busca) itens = itens.filter(p=> String(p.nome||'').toLowerCase().includes(busca.toLowerCase()));
+
+  if(!itens.length){ list.innerHTML = '<div class="empty">Nada por aqui. Cadastre um produto ou importe do Bulário.</div>'; return; }
+
+  list.innerHTML = itens.map(p=>{
+    const st = statusOf(p);
+    const cls = st.k==='low'?'low':(st.k==='zero'?'zero':'');
+    return `
+    <div class="item ${cls}">
+      <div class="item-top">
+        <span class="cat">${escapeHtml(p.categoria||'Outro')}</span>
+        <span class="alert ${st.k}">${st.label}</span>
+      </div>
+      <h3>${escapeHtml(p.nome)}</h3>
+      <div class="saldo">${fmt(num(p.estoqueAtual))} <small>${escapeHtml(p.unidade||'')}</small></div>
+      <div class="meta">Mínimo: ${fmt(num(p.estoqueMinimo))} ${escapeHtml(p.unidade||'')} ${p.fornecedor?' · '+escapeHtml(p.fornecedor):''}</div>
+      <div class="actions">
+        <button class="btn-in" onclick="openMov('${p.id}','entrada')">+ Entrada</button>
+        <button class="btn-out" onclick="openMov('${p.id}','saida')">− Saída</button>
+        <button class="btn-hist" onclick="openHist('${p.id}')">Histórico</button>
+        <button class="btn-edit" onclick="editarProduto('${p.id}')">✎</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); filtro=t.dataset.f; render();
+}));
+document.getElementById('busca').addEventListener('input',e=>{busca=e.target.value;render();});
+document.getElementById('filtroCat').addEventListener('change',e=>{filtroCat=e.target.value;render();});
+
+// ---- Produto ----
+function openProduto(){
+  editandoId=null;
+  document.getElementById('dlgProdTitle').textContent='Novo produto';
+  document.getElementById('pNome').value='';
+  document.getElementById('pCategoria').value='Defensivo';
+  document.getElementById('pUnidade').value='mL';
+  document.getElementById('pSaldo').value='0';
+  document.getElementById('pMinimo').value='0';
+  document.getElementById('pFornecedor').value='';
+  document.getElementById('pObs').value='';
+  document.getElementById('dlgProduto').showModal();
+}
+function editarProduto(id){
+  const p = estoque.find(x=>x.id===id); if(!p) return;
+  editandoId=id;
+  document.getElementById('dlgProdTitle').textContent='Editar produto';
+  document.getElementById('pNome').value=p.nome||'';
+  document.getElementById('pCategoria').value=p.categoria||'Defensivo';
+  document.getElementById('pUnidade').value=p.unidade||'mL';
+  document.getElementById('pSaldo').value=p.estoqueAtual||0;
+  document.getElementById('pMinimo').value=p.estoqueMinimo||0;
+  document.getElementById('pFornecedor').value=p.fornecedor||'';
+  document.getElementById('pObs').value=p.obs||'';
+  document.getElementById('dlgProduto').showModal();
+}
+async function salvarProduto(){
+  const nome = document.getElementById('pNome').value.trim();
+  if(!nome){ alert('Digite o nome do produto.'); return; }
+  const dadosForm = {
+    nome,
+    categoria: document.getElementById('pCategoria').value,
+    unidade: document.getElementById('pUnidade').value,
+    estoqueMinimo: document.getElementById('pMinimo').value,
+    fornecedor: document.getElementById('pFornecedor').value,
+    obs: document.getElementById('pObs').value
+  };
+  const saldoIni = num(document.getElementById('pSaldo').value);
+  document.getElementById('dlgProduto').close();
+
+  if(editandoId){
+    // Ajusta saldo via movimentação para manter histórico correto
+    const p = estoque.find(x=>x.id===editandoId);
+    const diff = saldoIni - num(p.estoqueAtual);
+    await apiPost({action:'update', tipo:'estoque', id:editandoId, data:dadosForm});
+    if(diff!==0){
+      await apiPost({action:'movimentar', data:{
+        produtoId:editandoId, produtoNome:nome,
+        tipo: diff>0?'entrada':'saida', quantidade: Math.abs(diff),
+        unidade: dadosForm.unidade, origem:'ajuste', obs:'Ajuste manual de saldo'
+      }});
+    }
+  }else{
+    const res = await apiPost({action:'add', tipo:'estoque', data:Object.assign({}, dadosForm, {estoqueAtual:0})});
+    if(saldoIni>0 && res.id){
+      await apiPost({action:'movimentar', data:{
+        produtoId:res.id, produtoNome:nome, tipo:'entrada',
+        quantidade:saldoIni, unidade:dadosForm.unidade, origem:'compra', obs:'Saldo inicial'
+      }});
+    }
+  }
+  carregar();
+}
+
+// ---- Movimentação ----
+function openMov(id, tipo){
+  const p = estoque.find(x=>x.id===id); if(!p) return;
+  movProdutoId=id;
+  document.getElementById('movTitle').textContent = (tipo==='entrada'?'+ Entrada — ':'− Saída — ') + p.nome;
+  document.getElementById('movSub').textContent = `Saldo atual: ${fmt(num(p.estoqueAtual))} ${p.unidade||''}`;
+  document.getElementById('mTipo').value=tipo;
+  document.getElementById('mQtd').value='';
+  document.getElementById('mObs').value='';
+  document.getElementById('dlgMov').showModal();
+}
+async function salvarMov(){
+  const qtd = num(document.getElementById('mQtd').value);
+  if(!qtd||qtd<=0){ alert('Digite uma quantidade válida.'); return; }
+  const p = estoque.find(x=>x.id===movProdutoId);
+  document.getElementById('dlgMov').close();
+  await apiPost({action:'movimentar', data:{
+    produtoId:movProdutoId, produtoNome:p?p.nome:'',
+    tipo:document.getElementById('mTipo').value, quantidade:qtd,
+    unidade:p?p.unidade:'', origem:'manual',
+    obs:document.getElementById('mObs').value
+  }});
+  carregar();
+}
+
+// ---- Histórico ----
+function openHist(id){
+  const p = estoque.find(x=>x.id===id); if(!p) return;
+  document.getElementById('histTitle').textContent = p.nome;
+  const lista = movs.filter(m=>m.produtoId===id || String(m.produtoNome).toLowerCase()===String(p.nome).toLowerCase())
+    .sort((a,b)=> new Date(b.dataCriacao)-new Date(a.dataCriacao)).slice(0,50);
+  document.getElementById('histSub').textContent = lista.length? `${lista.length} últimas movimentações` : 'Sem movimentações ainda';
+  document.getElementById('histList').innerHTML = lista.length? lista.map(m=>`
+    <div class="mov">
+      <div><b class="${m.tipo==='entrada'?'q-in':'q-out'}">${m.tipo==='entrada'?'+':'−'} ${fmt(num(m.quantidade))} ${escapeHtml(m.unidade||'')}</b>
+      <small>${fmtData(m.dataCriacao)} · ${escapeHtml(m.origem||'manual')}${m.obs?' · '+escapeHtml(m.obs):''}</small></div>
+    </div>`).join('') : '<div class="empty">Nenhuma movimentação.</div>';
+  document.getElementById('dlgHist').showModal();
+}
+
+// ---- Importar do Bulário ----
+async function importarBulario(){
+  if(!confirm('Criar no estoque os produtos do Bulário que ainda não existem (com saldo zero)?')) return;
+  try{
+    const b = await apiGet('bulario');
+    const nomesEstoque = new Set(estoque.map(p=>String(p.nome).trim().toLowerCase()));
+    const faltando = (b.data||[]).filter(p=>!nomesEstoque.has(String(p.nome).trim().toLowerCase()));
+    if(!faltando.length){ alert('Tudo certo — nenhum produto faltando.'); return; }
+    for(const p of faltando){
+      await apiPost({action:'add', tipo:'estoque', data:{
+        nome:p.nome, categoria:'Defensivo', unidade:'mL',
+        estoqueAtual:0, estoqueMinimo:0, fornecedor:'', obs:'Importado do Bulário'
+      }});
+    }
+    alert(`Pronto! ${faltando.length} produtos importados. Agora ajuste saldo e unidade de cada um.`);
+    carregar();
+  }catch(e){ alert('Erro ao importar.'); }
+}
+
+carregar();
+</script>
+</body>
+</html>
