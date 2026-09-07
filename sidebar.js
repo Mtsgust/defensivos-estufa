@@ -12,9 +12,7 @@
     ['estoque.html', 'Estoque', 'estoque',
       '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
     ['bulario.html', 'Bulário', 'bulario',
-      '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>'],
-    ['inicio.html', 'Início', 'inicio',
-      '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>']
+      '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>']
   ];
   var page = (document.body.getAttribute('data-page') || '').trim().toLowerCase();
   if(!page){
