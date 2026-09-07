@@ -19,6 +19,8 @@
   .subnav{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
   .chip{padding:7px 13px; border-radius:20px; font-size:12.5px; background:var(--paper); border:1px solid var(--line); cursor:pointer; color:#54614F;}
   .chip.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
+  .fill-btn{width:100%; padding:11px; border:1px dashed var(--leaf); border-radius:10px; background:transparent; color:var(--leaf); font-size:13px; font-weight:600; margin-bottom:14px; cursor:pointer;}
+  .fill-status{font-size:12.5px; color:#54614F; margin:-8px 0 12px; white-space:pre-line;}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
   .prod{background:var(--paper); border:1px solid var(--line); border-radius:12px; margin-bottom:8px; overflow:hidden;}
   .prod-head{display:flex; justify-content:space-between; align-items:center; padding:13px 14px; cursor:pointer;}
@@ -64,6 +66,8 @@
     <div class="chip" data-c="Fungicida">Fungicidas</div>
     <div class="chip" data-c="Inseticida/Acaricida">Inseticidas/Acaricidas</div>
   </div>
+  <button class="fill-btn" onclick="preencherDados()">Preencher dados faltantes (ingrediente, classe, dose, carência, bula)</button>
+  <div class="fill-status" id="fillStatus"></div>
   <div id="bu-list"></div>
 </main>
 
@@ -95,7 +99,7 @@ const BULARIO_KEY = 'bularioProdutos_v1';
 const BULARIO_SEED = [
   ['Metiltiofan','Fungicida'], ['Orthocide','Fungicida'], ['Cercobin','Fungicida'],
   ['Dithane','Fungicida'], ['Score','Fungicida'], ['Amistar Top','Fungicida'],
-  ['Influx','Fungicida'], ['Verdavis','Fungicida'], ['Cabrio Top','Fungicida'],
+  ['Influx','Inseticida/Acaricida'], ['Verdavis','Inseticida/Acaricida'], ['Cabrio Top','Fungicida'],
   ['Bravonil 720','Fungicida'], ['Maxim','Fungicida'], ['Cobre Vermelho','Fungicida'],
   ['Abelto Pro','Fungicida'], ['Verno','Fungicida'],
   ['Trigard','Inseticida/Acaricida'], ['Abamectina','Inseticida/Acaricida'],
@@ -111,7 +115,6 @@ function escapeHtml(s){
 }
 
 function carregarListaLegado(){
-  // usado só uma vez, pra migrar o que já estava salvo neste navegador (se houver)
   const raw = localStorage.getItem(BULARIO_KEY);
   return raw ? JSON.parse(raw) : null;
 }
@@ -121,20 +124,139 @@ async function apiCall(action, extra){
   return r.json();
 }
 
+// Base oficial (bula do fabricante — doses e carências para TOMATE).
+// Campos: ia = ingrediente ativo, tox = classe toxicológica,
+// dose = dose no tomate, car = carência no tomate, link = bula oficial,
+// cat = corrige a categoria quando a cadastrada está errada.
+const REFERENCIA = {
+  'Metiltiofan': { ia: 'Tiofanato-metílico', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '70 g/100L de água (tomate — mancha-de-cladosporium, mofo-cinzento, septoriose)',
+    car: '14 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2022-02/metiltiofan_0.pdf' },
+  'Orthocide': { ia: 'Captana', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '240 g/100L de água (tomate — septoriose/requeima)',
+    car: '1 dia (tomate)',
+    link: 'https://assets.revistacultivar.com.br/edb26eb0-a31f-4aa4-b2ac-97eb14c60a31_orthocide_500_bula.pdf' },
+  'Cercobin': { ia: 'Tiofanato-metílico', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '70–90 g/100L de água (tomate — septoriose)',
+    car: '14 dias (tomate)',
+    link: 'https://www.agrolink.com.br/agrolinkfito/produto/cercobin-875-wg_10619.html' },
+  'Dithane': { ia: 'Mancozebe', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '200–300 g/100L de água (tomate — confirmar na bula)',
+    car: '7 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-01/dithane_nt_.pdf' },
+  'Score': { ia: 'Difenoconazol', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '50 mL/100L de água (tomate envarado — septoriose)',
+    car: '3 dias (tomate)',
+    link: 'https://assets.revistacultivar.com.br/02fcfbdc-c0ce-43d0-9d33-9b50bd413a62_score_bula.pdf' },
+  'Amistar Top': { ia: 'Azoxistrobina + difenoconazol', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '40 mL/100L de água (tomate — pinta preta)',
+    car: '3 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2024-02/amistar_top.pdf' },
+  'Influx': { ia: 'Benzoato de emamectina + lufenurom', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '75–100 g/ha em 600 L/ha de calda (tomate — traça/broca-pequena)',
+    car: '3 dias (tomate)', cat: 'Inseticida/Acaricida',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-02/influx.pdf' },
+  'Verdavis': { ia: 'Isocicloseram + lambda-cialotrina', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: 'Sem registro para tomate (registrado p/ soja, milho e grãos) — não usar sem orientação',
+    car: '', cat: 'Inseticida/Acaricida',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-04/verdavis.pdf' },
+  'Cabrio Top': { ia: 'Metiram + piraclostrobina', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '200 g/100L de água (tomate — pinta/septoriose); 400 g/100L (requeima)',
+    car: '7 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2024-09/cabrio-top.pdf' },
+  'Bravonil 720': { ia: 'Clorotalonil', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '175–200 mL/100L de água (tomate — pinta/requeima)',
+    car: '7 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-08/bravonil_720.pdf' },
+  'Maxim': { ia: 'Fludioxonil', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: 'Tratamento de sementes/mudas — ver bula (sem uso foliar no tomate)',
+    car: 'Não se aplica (trat. sementes)',
+    link: 'https://www.agrolink.com.br/agrolinkfito/produto/maxim_3317.html' },
+  'Cobre Vermelho': { ia: 'Óxido cuproso', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '200–250 g/100L de água (tomate — confirmar na bula do seu produto)',
+    car: 'Sem restrições (cobre — ver bula)', link: '' },
+  'Abelto Pro': { ia: 'Dimetomorfe + cloridrato de propamocarbe (nome oficial: Asbelto Pro)',
+    tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '200–250 mL/100L de água (tomate — requeima)',
+    car: '7 dias (tomate)',
+    link: 'https://www.agrolink.com.br/agrolinkfito/produto/asbelto-pro_12214.html' },
+  'Verno': { ia: 'Óxido cuproso + óxido de zinco (fertilizante foliar — não é agrotóxico)', tox: '',
+    dose: '250–500 g/ha (tomate — nutrição foliar Cu+Zn)',
+    car: 'Não se aplica (fertilizante)',
+    link: 'https://amvac.com.br/wp-content/uploads/2022/09/Rotulo-Verno-10Kg_inteirico_24012024.pdf' },
+  'Trigard': { ia: 'Ciromazina', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '15 g/100L de água (tomate — larva-minadora)',
+    car: '4 dias (tomate)',
+    link: 'https://maisagro.syngenta.com.br/media/uploads/2024/08/trigard_750_wp_8426.pdf' },
+  'Abamectina': { ia: 'Abamectina', tox: 'Categoria 3 — Moderadamente Tóxico (72 EC, conforme bula linkada)',
+    dose: '20–25 mL/100L de água (tomate — traça)',
+    car: '3 dias (tomate — confirmar na bula do seu produto)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-07/abamectin_72_ec_nortox.pdf' },
+  'Actara': { ia: 'Tiametoxam', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '16–20 g/100L de água (tomate — mosca-branca); 12–15 g/100L (pulgão-verde)',
+    car: '3 dias (tomate — foliar)',
+    link: 'https://agrofit.agricultura.gov.br/agrofit_cons/agrofit.ap_download_blob_agrofit?p_id_file=540383&p_nm_file=F2136085302%2FACTARA+250+WG%2C+NIRVANA_BULA+COMPLETA_18+12+2025.pdf' },
+  'Ampligo': { ia: 'Lambda-cialotrina + clorantraniliprole', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '20–30 mL/100L de água (tomate — traça-do-tomateiro)',
+    car: '3 dias (tomate)',
+    link: 'https://www.agricolapanorama.com.br/innovaeditor/assets/download/AMPLIGO.pdf' },
+  'Asgard': { ia: 'Fluazinam', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '100 mL/100L de água (tomate — pinta/requeima)',
+    car: '3 dias (tomate)',
+    link: 'https://www.agrolink.com.br/agrolinkfito/produto/asgard-500-sc_11586.html' },
+  'Oberon': { ia: 'Espiromesifeno', tox: 'Não Classificado',
+    dose: '50–60 mL/100L de água (tomate — mosca-branca)',
+    car: '3 dias (tomate)',
+    link: 'https://www.agrolink.com.br/agrolinkfito/produto/oberon_6977.html' },
+  'Connect': { ia: 'Imidacloprido + beta-ciflutrina', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '75–100 mL/100L de água (tomate — mosca-branca/tripes)',
+    car: '7 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-09/connect.pdf' },
+  'Lanate': { ia: 'Metomil', tox: 'Categoria 3 — Moderadamente Tóxico',
+    dose: '100 mL/100L de água (tomate — tripes/pulgão/broca)',
+    car: '3 dias (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-11/lannatebr.pdf' },
+  'Dipel': { ia: 'Bacillus thuringiensis', tox: 'Não Classificado (biológico)',
+    dose: '100–150 mL/100L de água (tomate — traça-do-tomateiro, versão líquida SC)',
+    car: 'Não determinada (biológico)',
+    link: 'https://www.agrolink.com.br/agrolinkfito/produto/dipel_3040.html' },
+  'Minecto Pro': { ia: 'Abamectina + ciantraniliprole', tox: 'Categoria 3 — Moderadamente Tóxico',
+    dose: '30–60 mL/100L de água (tomate — traça/broca-pequena); 60–90 mL/100L (mosca-branca); 62,5–90 mL/100L (mosca-minadora)',
+    car: '7 dias (tomate — confirmar na bula)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-02/minecto_pro.pdf' },
+  'Torero': { ia: 'Mancozebe + cimoxanil', tox: 'Categoria 5 — Improvável Causar Dano Agudo',
+    dose: '200–300 g/100L de água (tomate — requeima; confirmar na bula)',
+    car: '7 dias (tomate)',
+    link: 'https://ascenza.com.br/sites/default/files/2025-11/torero_-_bula19.09.25.pdf' },
+  'Pirate': { ia: 'Clorfenapir', tox: 'Categoria 4 — Pouco Tóxico',
+    dose: '25–50 mL/100L de água (tomate — traça/ácaros)',
+    car: '1 dia (tomate)',
+    link: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-05/pirate.pdf' }
+};
+
+// Preenche os campos vazios de p com a REFERENCIA. Retorna true se mudou algo.
+// Nunca apaga o que você já preencheu à mão.
+function aplicarRef(p){
+  const ref = REFERENCIA[p.nome];
+  if(!ref) return false;
+  let mudou = false;
+  const vazio = v => !String(v||'').trim();
+  if(vazio(p.ingredienteAtivo) && ref.ia){ p.ingredienteAtivo = ref.ia; mudou = true; }
+  if(vazio(p.classeToxicologica) && ref.tox){ p.classeToxicologica = ref.tox; mudou = true; }
+  if(vazio(p.dose) && ref.dose){ p.dose = ref.dose; mudou = true; }
+  if(vazio(p.carencia) && ref.car){ p.carencia = ref.car; mudou = true; }
+  if(vazio(p.bulaLink) && ref.link){ p.bulaLink = ref.link; mudou = true; }
+  if(ref.cat && p.categoria !== ref.cat){ p.categoria = ref.cat; mudou = true; }
+  return mudou;
+}
+
 async function semear(){
-  // primeira vez que a planilha é usada: manda a base (o que já estava salvo neste
-  // navegador, se houver, senão a lista padrão) pra planilha, uma vez só.
   const legado = carregarListaLegado();
   const base = legado || BULARIO_SEED.map(([nome,categoria]) => ({
     nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
   }));
-  base.forEach(p => {
-    const ref = REFERENCIA[p.nome];
-    if(ref){
-      if(!p.dose) p.dose = ref.dose || '';
-      if(!p.bulaLink) p.bulaLink = ref.bulaLink || '';
-    }
-  });
+  base.forEach(aplicarRef);
   for(const p of base){
     try{
       await apiCall('add', { data: {
@@ -145,30 +267,6 @@ async function semear(){
     }catch(e){ /* segue pro próximo mesmo se um falhar */ }
   }
 }
-
-// Doses conferidas na bula oficial (tomate, quando disponível em g ou mL/100L de água).
-// Produtos sem entrada aqui só têm dose expressa por hectare no rótulo — não preenchidos, conforme combinado.
-const REFERENCIA = {
-  'Metiltiofan': { dose: '70 g/100L água (tomate — mancha-de-cladosporium, mofo-cinzento, septoriose)', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2022-02/metiltiofan_0.pdf' },
-  'Orthocide': { dose: '240 g/100L água (tomate — septoriose/requeima)', bulaLink: 'https://assets.revistacultivar.com.br/edb26eb0-a31f-4aa4-b2ac-97eb14c60a31_orthocide_500_bula.pdf' },
-  'Cercobin': { dose: '70–90 g/100L água (dose geral para a maioria das culturas do rótulo)', bulaLink: 'https://www.agrolink.com.br/agrolinkfito/produto/cercobin-875-wg_10619.html' },
-  'Dithane': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-01/dithane_nt_.pdf' },
-  'Score': { dose: '50 mL/100L água (tomate envarado — septoriose)', bulaLink: 'https://assets.revistacultivar.com.br/02fcfbdc-c0ce-43d0-9d33-9b50bd413a62_score_bula.pdf' },
-  'Amistar Top': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2024-02/amistar_top.pdf' },
-  'Influx': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-02/influx.pdf' },
-  'Verdavis': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-04/verdavis.pdf' },
-  'Cabrio Top': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2024-09/cabrio-top.pdf' },
-  'Bravonil 720': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-08/bravonil_720.pdf' },
-  'Ampligo': { dose: '20–30 mL/100L água (tomate — traça-do-tomateiro)', bulaLink: 'https://www.agricolapanorama.com.br/innovaeditor/assets/download/AMPLIGO.pdf' },
-  'Trigard': { dose: '', bulaLink: 'https://maisagro.syngenta.com.br/media/uploads/2024/08/trigard_750_wp_8426.pdf' },
-  'Maxim': { dose: '', bulaLink: 'https://www.agrolink.com.br/agrolinkfito/produto/maxim_3317.html' },
-  'Abamectina': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-07/abamectin_72_ec_nortox.pdf' },
-  'Actara': { dose: '16–20 g/100L água (tomate — mosca-branca); 12–15 g/100L (pulgão-verde)', bulaLink: 'https://agrofit.agricultura.gov.br/agrofit_cons/agrofit.ap_download_blob_agrofit?p_id_file=540383&p_nm_file=F2136085302%2FACTARA+250+WG%2C+NIRVANA_BULA+COMPLETA_18+12+2025.pdf' },
-  'Oberon': { dose: '', bulaLink: 'https://www.agrolink.com.br/agrolinkfito/produto/oberon_6977.html' },
-  'Minecto Pro': { dose: '30–60 mL/100L água (tomate — traça/broca-pequena); 60–90 mL/100L (mosca-branca); 62,5–90 mL/100L (mosca-minadora)', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2026-02/minecto_pro.pdf' },
-  'Dipel': { dose: '100–150 mL/100L água (tomate — traça-do-tomateiro, versão líquida SC)', bulaLink: 'https://www.doutoragronomo.com.br/produtos/bacillus-thuringiensis-dipel-liquido-1-litro/' },
-  'Pirate': { dose: '', bulaLink: 'https://www.adapar.pr.gov.br/sites/adapar/arquivos_restritos/files/documento/2025-05/pirate.pdf' }
-};
 
 let lista = [];
 let filtroCat = 'todos';
@@ -285,6 +383,7 @@ async function salvarNovo(){
     nome, categoria: document.getElementById('fCategoria').value,
     ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
   };
+  aplicarRef(novo);
   document.getElementById('dialog').close();
   const res = await apiCall('add', { data: novo });
   novo.id = res.id;
@@ -298,8 +397,8 @@ async function completarPadrao(){
   if(faltando.length === 0){ alert('Já está tudo lá — nenhum produto padrão faltando.'); return; }
   if(!confirm(`Faltam ${faltando.length} produtos da lista padrão. Adicionar agora?`)) return;
   for(const [nome, categoria] of faltando){
-    const ref = REFERENCIA[nome] || {};
-    const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose: ref.dose||'', carencia:'', obs:'', bulaLink: ref.bulaLink||'' };
+    const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:'' };
+    aplicarRef(novo);
     try{
       const res = await apiCall('add', { data: novo });
       novo.id = res.id;
@@ -308,6 +407,33 @@ async function completarPadrao(){
   }
   render();
   alert('Pronto! Lista completada.');
+}
+
+// Preenche os campos vazios de todos os produtos com os dados oficiais.
+// Nunca apaga o que você já preencheu à mão.
+async function preencherDados(){
+  const st = document.getElementById('fillStatus');
+  const alvos = lista.filter(aplicarRef);
+  if(!alvos.length){ st.textContent = 'Nada a preencher — todos os produtos já estão completos.'; return; }
+  if(!confirm(`Preencher os dados faltantes de ${alvos.length} produtos? (o que você preencheu à mão será mantido)`)) {
+    await carregar(); // desfaz o preenchimento local
+    return;
+  }
+  st.textContent = `Preenchendo 0/${alvos.length}…`;
+  let ok = 0;
+  for(const p of alvos){
+    try{
+      await apiCall('update', { id: p.id, data: {
+        categoria: p.categoria, ingredienteAtivo: p.ingredienteAtivo || '',
+        classeToxicologica: p.classeToxicologica || '', dose: p.dose || '',
+        carencia: p.carencia || '', bulaLink: p.bulaLink || ''
+      }});
+      ok++;
+      st.textContent = `Preenchendo ${ok}/${alvos.length}…`;
+    }catch(e){ /* segue pro próximo */ }
+  }
+  st.textContent = `Pronto! ${ok} produtos atualizados. Confira abrindo cada um.`;
+  render();
 }
 
 carregar();
