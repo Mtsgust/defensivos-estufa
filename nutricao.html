@@ -89,7 +89,7 @@
   <div class="sheet">
     <h2>Importar plano semanal</h2>
     <p class="sub">Cole o texto do técnico, anexe um .txt/.csv ou tire foto da folha. Confira abaixo e salve tudo de uma vez como pendente.</p>
-    <div class="field"><label>Texto do plano</label><textarea id="impTexto" rows="6" placeholder="Ex: Segunda - Estufa 1 - Trichoderma 2kg&#10;Terça - Estufas 2 e 3 - Fertirrigação cálcio 5L"></textarea></div>
+    <div class="field"><label>Texto do plano</label><textarea id="impTexto" rows="6" placeholder="Cole aqui. Ex:&#10;FERTIRRIGAÇÃO – ESTUFA 7 – Semana 07/09 a 11/09/2026&#10;Segunda-feira: Nitrato de cálcio — 8 kg / Soil K — 3 L"></textarea></div>
     <div class="row2">
       <div class="field"><label>Arquivo texto/CSV</label><input id="impArquivo" type="file" accept=".txt,.csv,.md"></div>
       <div class="field"><label>Foto da folha</label><input id="impFoto" type="file" accept="image/*"></div>
@@ -395,31 +395,44 @@ document.getElementById('impFoto').addEventListener('change', async (e)=>{
   }catch(err){ st.textContent = 'Não consegui ler a foto. Tente uma foto mais nítida ou cole o texto.'; }
   e.target.value='';
 });
-function dataDiaSemana(nome){
-  const mapa = {domingo:0, segunda:1, terca:2, terça:2, quarta:3, quinta:4, sexta:5, sabado:6, sábado:6};
+function dataDiaSemana(nome, base){
+  const mapa = {domingo:0, segunda:1, terca:2, 'terça':2, quarta:3, quinta:4, sexta:5, sabado:6, 'sábado':6};
   const k = Object.keys(mapa).find(d => nome.startsWith(d));
   if(k === undefined) return '';
+  if(base){
+    const dt = new Date(base); dt.setDate(base.getDate() + ((mapa[k]-1+7)%7));
+    return dt.toISOString().slice(0,10);
+  }
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const diff = (mapa[k] - hoje.getDay() + 7) % 7;
   const dt = new Date(hoje); dt.setDate(hoje.getDate() + diff);
   return dt.toISOString().slice(0,10);
 }
 function parsePlanoSemanal(texto){
-  const linhas = String(texto||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const raw = String(texto||'');
+  // Separa produtos divididos por " / " na mesma linha (tabela do técnico)
+  const linhas = raw.split(/\r?\n/).flatMap(l => String(l).split(/\s+\/\s+/)).map(l=>l.trim()).filter(Boolean);
   const itens = [];
   let estufaCtx = ['1'], dataCtx = hojeISO(), tipoCtx = 'Outro';
+  // Semana "07/09 a 11/09/2026": usa a 1ª data como segunda-feira de referência
+  let semanaBase = null;
+  const mSem = raw.match(/semana[^\n]*?(\d{1,2})\/(\d{1,2})\s*a[^\n]*?(\d{1,2})\/(\d{1,2})\/(\d{2,4})/i);
+  if(mSem){
+    semanaBase = new Date(parseInt(mSem[5]), parseInt(mSem[2])-1, parseInt(mSem[1]));
+  }
   const reDia = /(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)/i;
   const reData = /(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/;
   const reTipoSolo = /(solo|gesso|cama|substrato|tratamento)/i;
-  const reTipoBio = /(biol|tricho|beauveria|metarhizium|bacillus| enjeux|biologico)/i;
-  const reTipoFert = /(fertirrig|fert |nutri|cálcio|calcio|potássio|potassio|npk|ureia|map\b|mkp)/i;
+  const reTipoBio = /(biol|tricho|beauveria|metarhizium|bacillus|biologico)/i;
+  const reTipoFert = /(fertirrig|fert |nutri|cálcio|calcio|potássio|potassio|npk|ureia|nitrato|soil|mix|vita|mkp)/i;
+  const reCabecalho = /(produtor|matheus|moraes|cultura|variedade|localidade|pinhal|quantidade|plantas|semana|dosagens|frutilla|tomate|^\s*dia\s*$)/i;
   for(const lin of linhas){
     const low = lin.toLowerCase();
     const mDia = low.match(reDia);
-    if(mDia){ dataCtx = dataDiaSemana(mDia[1].toLowerCase()) || dataCtx; }
+    if(mDia){ dataCtx = dataDiaSemana(mDia[1].toLowerCase(), semanaBase) || dataCtx; }
     const mData = lin.match(reData);
-    if(mData){
-      const ano = mData[3] ? (mData[3].length===2?'20'+mData[3]:mData[3]) : String(new Date().getFullYear());
+    if(mData && !/semana/i.test(lin)){
+      const ano = mData[3] ? (mData[3].length===2?'20'+mData[3]:mData[3]) : String(semanaBase ? semanaBase.getFullYear() : new Date().getFullYear());
       dataCtx = `${ano}-${String(mData[2]).padStart(2,'0')}-${String(mData[1]).padStart(2,'0')}`;
     }
     let estufas = null;
@@ -430,6 +443,7 @@ function parsePlanoSemanal(texto){
     if(reTipoSolo.test(lin)) tipoCtx = 'Tratamento de solo';
     else if(reTipoBio.test(lin)) tipoCtx = 'Biológico';
     else if(reTipoFert.test(lin)) tipoCtx = 'Fertirrigação';
+    if(reCabecalho.test(lin) && !lin.match(/(\d+[.,]?\d*)\s*(kg|g\b|gr\b|ml\b|mL\b|l\b|litros?|un\b)/i)) continue;
     const soCabecalho = /^(plano|semana|nutri|técnico|tecnico|estufa|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)[\s:–\-]*$/i.test(lin);
     if(soCabecalho) continue;
     // dose
@@ -446,9 +460,10 @@ function parsePlanoSemanal(texto){
       .replace(/(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)(-feira)?/gi,' ')
       .replace(/(\d+[.,]?\d*)\s*(kg|g\b|gr\b|ml\b|l\b|litros?|un\b)(\/\w+)?/gi,' ')
       .replace(/^(e\s?[1-7]|estufa\s?\d)\s*[-:–•|]+/i,' ')
-      .replace(/^[-–•\d.)\s]+/,'').replace(/\s{2,}/g,' ').trim();
+      .replace(/^[-–—•\d.)\s]+/,'').replace(/\s{2,}/g,' ').trim()
+      .replace(/[-–—•|:;.,\s]+$/,'').trim();
     if(prod.length < 3) continue;
-    if(/^(fertirrigação|tratamento|biológico|outro)$/i.test(prod)) continue;
+    if(/^(fertirrigação|fertirrigacao|tratamento|biológico|biologico|outro)$/i.test(prod)) continue;
     for(const e of estufaCtx){
       itens.push({ estufa:e, tipoTarefa:tipoCtx, produto:prod.slice(0,60), dose: mDose?mDose[0]:'', qtd, unidade:un, data:dataCtx, obs:'Plano semanal' });
     }
