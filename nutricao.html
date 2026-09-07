@@ -113,8 +113,21 @@
       <input id="fProduto" type="text" placeholder="ex: Trichoderma, gesso agrícola...">
     </div>
     <div class="field">
-      <label>Dose</label>
+      <label>Dose (texto livre)</label>
       <input id="fDose" type="text" placeholder="ex: 2kg/estufa">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Qtd usada (baixa no estoque)</label>
+        <input id="fQtd" type="number" step="any" inputmode="decimal" placeholder="ex: 2">
+      </div>
+      <div class="field">
+        <label>Un.</label>
+        <select id="fUnidade">
+          <option value="kg">kg</option><option value="g">g</option>
+          <option value="L">L</option><option value="mL">mL</option><option value="un">un</option>
+        </select>
+      </div>
     </div>
     <div class="field">
       <label>Data (prevista ou feita)</label>
@@ -135,6 +148,19 @@
 <script>
 let dados = [];
 let filtro = 'pendente';
+
+// ===== INTEGRAÇÃO ESTOQUE (baixa automática) =====
+async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId, obs) {
+  try {
+    const qtd = parseFloat(String(quantidade).replace(',', '.'));
+    if (!produtoNome || !qtd || qtd <= 0) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({
+      action: 'movimentar',
+      data: { produtoNome, tipo: 'saida', quantidade: qtd, unidade: unidade || '',
+              origem: origem || 'manual', origemId: origemId || '', obs: obs || '' }
+    })});
+  } catch(e) { console.warn('Falha ao dar baixa no estoque:', produtoNome, e); }
+}
 
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
@@ -193,7 +219,6 @@ function render(){
     return;
   }
 
-  // pendentes (e "todas"): agrupa por data prevista — assim dá pra ver o mês inteiro planejado
   itens = itens.slice().sort((a,b) => {
     if(!a.dataPrevista) return 1;
     if(!b.dataPrevista) return -1;
@@ -240,6 +265,8 @@ function openForm(){
   document.getElementById('fTipoTarefa').value='Tratamento de solo';
   document.getElementById('fProduto').value='';
   document.getElementById('fDose').value='';
+  document.getElementById('fQtd').value='';
+  document.getElementById('fUnidade').value='kg';
   document.getElementById('fData').value=hojeISO();
   document.getElementById('fObs').value='';
   document.getElementById('dialog').showModal();
@@ -249,30 +276,49 @@ function closeForm(){ document.getElementById('dialog').close(); }
 async function salvar(){
   const status = document.getElementById('fStatus').value;
   const data = document.getElementById('fData').value;
-  const payload = {
-    tipo: 'nutricao',
-    action: 'add',
-    data: {
-      estufa: document.getElementById('fEstufa').value,
-      tipoTarefa: document.getElementById('fTipoTarefa').value,
-      produto: document.getElementById('fProduto').value,
-      dose: document.getElementById('fDose').value,
-      obs: document.getElementById('fObs').value,
-      status: status,
-      dataPrevista: status === 'pendente' ? data : '',
-      dataExecucao: status === 'feito' ? data : ''
-    }
+  const qtdUsada = document.getElementById('fQtd').value;
+  const unUsada = document.getElementById('fUnidade').value;
+  const payloadData = {
+    estufa: document.getElementById('fEstufa').value,
+    tipoTarefa: document.getElementById('fTipoTarefa').value,
+    produto: document.getElementById('fProduto').value,
+    dose: document.getElementById('fDose').value,
+    obs: document.getElementById('fObs').value,
+    status: status,
+    dataPrevista: status === 'pendente' ? data : '',
+    dataExecucao: status === 'feito' ? data : ''
   };
   closeForm();
-  await fetch(API_URL, {method:'POST', body: JSON.stringify(payload)});
+  let nid = null;
+  try {
+    const resp = await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'nutricao', action:'add', data: payloadData})});
+    nid = (await resp.json()).id || null;
+  } catch(e) {
+    await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'nutricao', action:'add', data: payloadData})});
+  }
+  if(status === 'feito'){
+    await baixarEstoque(payloadData.produto, qtdUsada, unUsada, 'nutricao', nid,
+      `Nutricao estufa ${payloadData.estufa} (${payloadData.tipoTarefa})`);
+  }
   carregar();
 }
 
 async function marcarFeito(id){
+  const d = dados.find(x => x.id === id);
   await fetch(API_URL, {method:'POST', body: JSON.stringify({
     tipo:'nutricao', action:'update', id,
     data:{ status:'feito', dataExecucao: hojeISO() }
   })});
+  if(d && d.produto){
+    const m = String(d.dose||'').match(/([\d.,]+)/);
+    const qtd = m ? m[1] : '';
+    const dl = String(d.dose||'').toLowerCase();
+    const u = dl.includes('kg') ? 'kg'
+            : dl.includes('ml') ? 'mL'
+            : /\bg\b/.test(dl) ? 'g'
+            : dl.includes('un') ? 'un' : 'L';
+    if(qtd) await baixarEstoque(d.produto, qtd, u, 'nutricao', id, `Nutricao estufa ${d.estufa}`);
+  }
   carregar();
 }
 

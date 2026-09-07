@@ -173,6 +173,19 @@ let dados = [];
 let filtro = 'pendente';
 let filtroEstufa = 'todas';
 
+// ===== INTEGRAÇÃO ESTOQUE (baixa automática) =====
+async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId, obs) {
+  try {
+    const qtd = parseFloat(String(quantidade).replace(',', '.'));
+    if (!produtoNome || !qtd || qtd <= 0) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({
+      action: 'movimentar',
+      data: { produtoNome, tipo: 'saida', quantidade: qtd, unidade: unidade || '',
+              origem: origem || 'manual', origemId: origemId || '', obs: obs || '' }
+    })});
+  } catch(e) { console.warn('Falha ao dar baixa no estoque:', produtoNome, e); }
+}
+
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
   try{
@@ -193,7 +206,6 @@ function isAtrasado(d){
 }
 
 function parseProdutos(d){
-  // Registros novos guardam um array JSON em d.produto. Registros antigos têm texto simples.
   if(!d.produto) return [];
   try{
     const parsed = JSON.parse(d.produto);
@@ -270,7 +282,6 @@ function render(){
     return;
   }
 
-  // pendentes (e "todas"): agrupa por data prevista, mais próxima primeiro
   itens = itens.slice().sort((a,b) => {
     if(!a.dataPrevista) return 1;
     if(!b.dataPrevista) return -1;
@@ -369,7 +380,6 @@ function addProdutoRow(nome, dose100, unidade){
 function removeProdutoRow(id){
   const row = document.getElementById(id);
   if(row) row.remove();
-  // nunca deixa a lista vazia
   if(document.querySelectorAll('#produtosList .prod-row').length === 0) addProdutoRow();
 }
 function resetProdutosRows(){
@@ -449,7 +459,7 @@ function editarItem(id){
   } else {
     addProdutoRow();
   }
-  addProdutoRow(); // uma linha extra em branco pra facilitar adicionar mais
+  addProdutoRow();
 
   document.getElementById('dialog').showModal();
 }
@@ -480,19 +490,51 @@ async function salvar(){
     dataExecucao: status === 'feito' ? data : ''
   };
   closeForm();
+  let origemId = editandoId;
   if(editandoId){
     await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'update', id: editandoId, data: campos})});
   } else {
-    await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'add', data: campos})});
+    try {
+      const resp = await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'add', data: campos})});
+      origemId = (await resp.json()).id || null;
+    } catch(e) {
+      await fetch(API_URL, {method:'POST', body: JSON.stringify({tipo:'pulverizacao', action:'add', data: campos})});
+    }
+  }
+  if(campos.status === 'feito'){
+    const litros = parseFloat(String(litrosAgua).replace(',','.')) || 0;
+    for(const p of produtos){
+      const dose100 = parseFloat(String(p.dose100).replace(',','.')) || 0;
+      if(dose100 > 0 && litros > 0){
+        const gasto = (dose100/100)*litros;
+        await baixarEstoque(p.nome, gasto, p.unidade, 'pulverizacao', origemId,
+          `Pulverizacao estufa(s) ${campos.estufa} - ${litros}L agua`);
+      }
+    }
   }
   carregar();
 }
 
 async function marcarFeito(id){
+  const d = dados.find(x => x.id === id);
   await fetch(API_URL, {method:'POST', body: JSON.stringify({
     tipo:'pulverizacao', action:'update', id,
     data:{ status:'feito', dataExecucao: hojeISO() }
   })});
+  if(d){
+    try{
+      const parsed = JSON.parse(d.produto || '[]');
+      const arr = Array.isArray(parsed) ? parsed : [{ nome: d.produto, dose100: d.dose }];
+      const litros = parseFloat(String(d.litrosAgua).replace(',','.')) || 0;
+      for(const p of arr){
+        const dose100 = parseFloat(String(p.dose100 ?? '').replace(',','.')) || 0;
+        if(dose100 > 0 && litros > 0){
+          await baixarEstoque(p.nome, (dose100/100)*litros, p.unidade || 'mL', 'pulverizacao', id,
+            `Pulverizacao estufa(s) ${d.estufa}`);
+        }
+      }
+    }catch(e){}
+  }
   carregar();
 }
 
