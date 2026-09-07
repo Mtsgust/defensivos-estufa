@@ -446,11 +446,12 @@ function parsePlanoSemanal(texto){
     if(reCabecalho.test(lin) && !lin.match(/(\d+[.,]?\d*)\s*(kg|g\b|gr\b|ml\b|mL\b|l\b|litros?|un\b)/i)) continue;
     const soCabecalho = /^(plano|semana|nutri|técnico|tecnico|estufa|segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)[\s:–\-]*$/i.test(lin);
     if(soCabecalho) continue;
-    // dose
+    // dose (obrigatória: sem dose não é tarefa, é cabeçalho)
     let qtd='', un='kg';
     const mDose = lin.match(/(\d+[.,]?\d*)\s*(kg|g\b|gr\b|ml\b|mL\b|l\b|litros?|un\b)/i);
-    if(mDose){
-      qtd = mDose[1].replace(',','.');
+    if(!mDose) continue;
+    qtd = mDose[1].replace(',','.');
+    {
       const u = mDose[2].toLowerCase();
       un = u.startsWith('kg')?'kg':u.startsWith('ml')?'mL':u.startsWith('un')?'un':u.startsWith('g')?'g':'L';
     }
