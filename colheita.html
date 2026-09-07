@@ -124,6 +124,10 @@
       <div class="field"><label>Cultura p/ os ciclos</label><input id="impCultura" type="text" value="Tomate"></div>
       <div class="field"><label>Variedade</label><input id="impVar" type="text" placeholder="ex: Frutilla"></div>
     </div>
+    <div class="row2">
+      <div class="field"><label><input type="checkbox" id="impPassada" style="width:auto"> É safra passada (entra como encerrada no Histórico)</label></div>
+      <div class="field"><label>Fim da colheita</label><input id="impFim" type="date"></div>
+    </div>
     <div class="imp-status" id="impStatus"></div>
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="document.getElementById('dlgImp').close()">Fechar</button>
@@ -271,6 +275,9 @@ async function carregar(){
 
 function ativoDaEstufa(e){
   return ciclos.find(c => String(c.estufa)===String(e) && c.status !== 'encerrada');
+}
+function temEncerrada(e){
+  return ciclos.some(c => String(c.estufa)===String(e) && c.status === 'encerrada');
 }
 function totaisDoCiclo(id){
   let kg = 0, cx = 0;
@@ -630,6 +637,7 @@ function openImp(){
   document.getElementById('impStatus').textContent='';
   document.getElementById('impPreview').innerHTML='';
   document.getElementById('impSaveBar').style.display='none';
+  document.getElementById('impPassada').checked=false;
   impCiclos=[];
   document.getElementById('dlgImp').showModal();
 }
@@ -646,13 +654,16 @@ function processarImp(){
   const cultura = document.getElementById('impCultura').value || 'Tomate';
   const variedade = document.getElementById('impVar').value || '';
   impCiclos = r.ciclos.map(c=>({...c, cultura, variedade}));
+  const passada = document.getElementById('impPassada').checked;
   const totalL = impCiclos.reduce((s,c)=>s+c.lancs.length,0);
-  const puladas = impCiclos.filter(c=>ativoDaEstufa(c.estufa));
+  const puladas = passada ? impCiclos.filter(c=>temEncerrada(c.estufa)) : impCiclos.filter(c=>ativoDaEstufa(c.estufa));
   st.textContent = `${impCiclos.length} ciclos · ${totalL} lançamentos.` +
-    (puladas.length ? `\nEstufas já com ciclo ativo serão ignoradas: ${puladas.map(c=>c.estufa).join(', ')}.` : '');
+    (passada ? '\nSerão salvos como safra ENCERRADA (aba Histórico).' : '') +
+    (puladas.length ? `\nIgnoradas: ${puladas.map(c=>c.estufa).join(', ')} (${passada?'já têm safra encerrada':'já têm ciclo ativo'}).` : '');
   document.getElementById('impPreview').innerHTML = impCiclos.map((c,i)=>{
     const s = c.lancs.reduce((a,l)=>a+(l.unidade==='CX'?0:l.quantidade),0);
-    return `<div class="imp-item"><b>Estufa ${escapeHtml(c.estufa)}</b> — plantio ${fmtData(c.plantio)} · início ${fmtData(c.inicio)}${ativoDaEstufa(c.estufa)?' · <b>JÁ TEM CICLO (será ignorada)</b>':''}
+    const tag = passada ? (temEncerrada(c.estufa)?' · <b>JÁ TEM ENCERRADA (será ignorada)</b>':' · <b>ENCERRADA</b>') : (ativoDaEstufa(c.estufa)?' · <b>JÁ TEM CICLO (será ignorada)</b>':'');
+    return `<div class="imp-item"><b>Estufa ${escapeHtml(c.estufa)}</b> — plantio ${fmtData(c.plantio)} · início ${fmtData(c.inicio)}${tag}
       <small>${c.lancs.length} lançamentos · soma KG: ${fmt(s)}${c.lancs[0]?` · ex: ${fmtData(c.lancs[0].data)} = ${fmt(c.lancs[0].quantidade)} ${c.lancs[0].unidade}`:''}</small></div>`;
   }).join('');
   document.getElementById('impSaveBar').style.display = impCiclos.length ? 'flex' : 'none';
@@ -661,13 +672,17 @@ async function salvarImportados(){
   if(!impCiclos.length) return;
   const btn = document.querySelector('#impSaveBar .btn-save');
   btn.disabled = true; btn.textContent = 'Salvando...';
+  const passada = document.getElementById('impPassada').checked;
+  const fim = document.getElementById('impFim').value || '';
   let nc = 0, nl = 0;
   for(const c of impCiclos){
-    if(ativoDaEstufa(c.estufa)) continue;
+    if(passada ? temEncerrada(c.estufa) : ativoDaEstufa(c.estufa)) continue;
     try{
       const res = await apiPost({tipo:'ciclos', action:'add', data:{
         estufa:c.estufa, cultura:c.cultura, variedade:c.variedade,
-        dataPlantio:c.plantio, dataInicio:c.inicio, dataFim:'', status:'ativa', obs:'Importado do Excel'
+        dataPlantio:c.plantio, dataInicio:c.inicio, dataFim:passada?fim:'',
+        status:passada?'encerrada':'ativa',
+        obs:passada?'Safra passada importada do Excel':'Importado do Excel'
       }});
       nc++;
       const cid = (res&&res.id)||'';
