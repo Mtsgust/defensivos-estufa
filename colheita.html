@@ -71,7 +71,7 @@
   .mov .rm{flex:0 0 auto; border:1px solid var(--danger); background:transparent; color:var(--danger); border-radius:8px; font-size:12px; padding:5px 10px; cursor:pointer;}
   /* Aba Geral: matriz semanas x estufas, só leitura, sem linhas */
   .mx-wrap{overflow-x:auto; padding-bottom:8px;}
-  .mx{min-width:560px;}
+  .mx{min-width:620px;}
   .mx-row{display:flex; gap:8px; margin-bottom:8px;}
   .mx-lab{flex:0 0 76px; font-size:11.5px; color:#8A968A; font-family:ui-monospace,Menlo,monospace; display:flex; align-items:center; justify-content:center; text-align:center;}
   .mx-cell{flex:1; min-width:0; background:var(--paper); border-radius:10px; padding:9px 4px; font-size:13px; font-weight:700; text-align:center;}
@@ -306,10 +306,12 @@ function somaDiasISO(iso, dias){
   d.setDate(d.getDate()+dias);
   return d.toISOString().slice(0,10);
 }
-function ddmm(iso){
-  if(!iso) return '';
-  const m = iso.match(/^\d{4}-(\d{2})-(\d{2})/);
-  return m ? `${m[2]}/${m[3]}` : iso;
+function fmtCurta(v){
+  const s = isoData(v);
+  if(!s) return '';
+  const p = s.split('-');
+  if(p.length < 3 || !p[0] || !p[1] || !p[2]) return '';
+  return p[2] + '/' + p[1];
 }
 function renderGeral(list){
   let estufas = ['1','2','3','4','5','6','7'];
@@ -338,13 +340,13 @@ function renderGeral(list){
     if(!v || (v.kg<=0 && v.cx<=0)) return '<div class="mx-cell vazia">—</div>';
     let t = v.kg>0 ? `${fmt(v.kg)} <small>KG</small>` : '';
     if(v.cx>0) t += (t?'<br>':'') + `${fmt(v.cx)} <small>CX</small>`;
-    if(v.last) t += `<br><small>${ddmm(v.last)}</small>`;
+    if(v.last) t += `<br><small>${fmtCurta(v.last)}</small>`;
     return `<div class="mx-cell">${t}</div>`;
   };
   let html = '<div class="mx-wrap"><div class="mx">';
   html += '<div class="mx-row"><div class="mx-lab"></div>' + cols.map(k=>
-    k.c ? `<div class="mx-cell head">E${k.e}<small>${k.tot.kg>0?fmt(k.tot.kg)+' KG':''}${k.tot.kg>0&&k.tot.cx>0?' · ':''}${k.tot.cx>0?fmt(k.tot.cx)+' CX':''}${k.base?'<br>ini '+ddmm(k.base):''}</small></div>`
-        : `<div class="mx-cell head">E${k.e}</div>`
+    k.c ? `<div class="mx-cell head">Estufa ${k.e}<small>${k.tot.kg>0?fmt(k.tot.kg)+' KG':''}${k.tot.kg>0&&k.tot.cx>0?' · ':''}${k.tot.cx>0?fmt(k.tot.cx)+' CX':''}${k.c.variedade?'<br>'+escapeHtml(k.c.variedade):''}${k.base?'<br>ini '+fmtCurta(k.base):''}</small></div>`
+        : `<div class="mx-cell head">Estufa ${k.e}</div>`
   ).join('') + '</div>';
   for(let s=1; s<=maxGeral; s++){
     html += `<div class="mx-row"><div class="mx-lab">S${s}</div>` +
