@@ -75,6 +75,36 @@
   canvas{max-height:240px;}
   .legend{font-size:11.5px; color:var(--dim); margin-top:8px;}
 
+  /* ===== Carrossel de widgets (Smart Stack) ===== */
+  .stack-bar{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
+  .stack-bar h2{margin:0 !important;}
+  .stack-nav{display:flex; gap:6px;}
+  .stack-nav button{background:var(--card2); border:1px solid var(--line); color:var(--ink);
+    width:28px; height:28px; border-radius:8px; cursor:pointer; font-size:16px; line-height:1;}
+  .stack{display:grid;}
+  .slide{grid-area:1/1; opacity:0; visibility:hidden; transform:translateX(16px);
+    transition:opacity .35s, transform .35s, visibility .35s;}
+  .slide.on{opacity:1; visibility:visible; transform:none;}
+  .slide h3{margin:0 0 10px; font-size:14px;}
+  .dots{display:flex; gap:6px; justify-content:center; margin-top:12px;}
+  .dots button{width:8px; height:8px; border-radius:50%; border:none; background:var(--line); padding:0; cursor:pointer;}
+  .dots button.on{background:var(--lime);}
+  .wtop{display:flex; gap:14px; align-items:center;}
+  .wtop .medal{font-size:44px;}
+  .wtop .e{font-size:22px; font-weight:800;}
+  .wtop .c{font-size:12.5px; color:var(--mut);}
+  .wtop .n{font-size:26px; font-weight:800; color:var(--lime); margin-top:4px;}
+  .wtop .n small{font-size:12px; font-weight:400; color:var(--mut);}
+  .wtop2{margin-top:10px; font-size:12.5px; color:var(--mut);}
+  .mapa7{display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px;}
+  .mini{background:var(--card2); border-radius:10px; padding:9px 6px; font-size:11px; text-align:center;}
+  .mini b{display:block; font-size:13px;}
+  .mini .cul{color:var(--mut); display:block; min-height:14px;}
+  .mini .tot{display:block; font-weight:700; margin-top:2px;}
+  .st{display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin:4px 0;}
+  .st.on{background:#123B28; color:#8FD19A;} .st.grow{background:#4A3A17; color:#E8C86A;} .st.off{background:#222; color:#888;}
+  .tag.colh{background:#123B28; color:#8FD19A;}
+
   /* ===== Mobile: sidebar vira barra no topo ===== */
   @media (max-width:860px){
     .app{flex-direction:column;}
@@ -135,6 +165,34 @@
         <div class="lbl"><span class="dot"></span>Produtos no estoque</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="estoque.html">Ver produtos →</a>
+      </div>
+    </div>
+
+    <div class="grid cols2">
+      <!-- ===== BLOCO: Carrossel A — destaques da colheita ===== -->
+      <div class="card">
+        <div class="stack-bar"><h2>Colheita em destaque</h2>
+          <div class="stack-nav"><button data-s="stackA" data-dir="-1">‹</button><button data-s="stackA" data-dir="1">›</button></div>
+        </div>
+        <div class="stack" id="stackA">
+          <div class="slide"><h3>🏆 Estufa da semana</h3><div id="wTop"><div class="empty">Carregando…</div></div></div>
+          <div class="slide"><h3>Colheita por semana (KG)</h3><canvas id="chEvol"></canvas>
+            <div class="legend">Últimas 8 semanas (seg–dom).</div></div>
+          <div class="slide"><h3>Ranking do mês por estufa</h3><canvas id="chRank"></canvas>
+            <div class="legend" id="rankLeg"></div></div>
+        </div>
+        <div class="dots" id="dotsA"></div>
+      </div>
+      <!-- ===== BLOCO: Carrossel B — estufas ===== -->
+      <div class="card">
+        <div class="stack-bar"><h2>Estufas</h2>
+          <div class="stack-nav"><button data-s="stackB" data-dir="-1">‹</button><button data-s="stackB" data-dir="1">›</button></div>
+        </div>
+        <div class="stack" id="stackB">
+          <div class="slide"><h3>Mapa das estufas</h3><div class="mapa7" id="wMapa"></div></div>
+          <div class="slide"><h3>Safra acumulada (ciclo ativo)</h3><div id="wSafra"></div></div>
+        </div>
+        <div class="dots" id="dotsB"></div>
       </div>
     </div>
 
@@ -200,6 +258,8 @@ async function get(tipo){
 async function carregarPainel(){
   try{
     const [pulv, nutr, est] = await Promise.all([get('pulverizacao'), get('nutricao'), get('estoque')]);
+    let ciclos = [], colhs = [];
+    try{ [ciclos, colhs] = await Promise.all([get('ciclos'), get('colheitas')]); }catch(e){}
     const pP = pulv.filter(d=>d.status!=='feito'), pN = nutr.filter(d=>d.status!=='feito');
     const aP = pP.filter(ehAtrasado).length, aN = pN.filter(ehAtrasado).length;
     const baixo = est.filter(p=>{ const s=num(p.estoqueAtual); return s<=0 || (num(p.estoqueMinimo)>0 && s<=num(p.estoqueMinimo)); });
@@ -223,6 +283,9 @@ async function carregarPainel(){
     }).join('') : '<div class="empty">Nenhuma pendência. Tudo em dia!</div>';
 
     desenharGraficos(pulv, nutr, est);
+    renderColheita(ciclos, colhs);
+    initStack('stackA', 'dotsA', 'stkA', 9000);
+    initStack('stackB', 'dotsB', 'stkB', 11000);
   }catch(e){
     document.getElementById('subtitulo').textContent = 'Erro ao carregar. Confira config.js.';
   }
@@ -267,6 +330,130 @@ function desenharGraficos(pulv, nutr, est){
     data:{labels:Object.keys(cats), datasets:[{data:Object.values(cats),
       backgroundColor:['#3D7A5C','#D9A441','#5C8FD1','#B45FC1','#E0785F','#6E8A75']}]},
     options:{plugins:{legend:{position:'bottom', labels:{boxWidth:12, padding:12}}}}});
+}
+
+// ===== Widgets de colheita =====
+const isoD = v => { if(!v) return ''; const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[1]}-${m[2]}-${m[3]}` : ''; };
+const hojeD = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fmtN = n => (Math.round(n*100)/100).toString().replace('.', ',');
+const ativoE = (ciclos, e) => ciclos.find(c => String(c.estufa)===String(e) && c.status!=='encerrada');
+function diasColhendo(ini, fim){
+  const a = isoD(ini); if(!a) return '';
+  const d = Math.round((new Date((isoD(fim)||hojeD())+'T00:00:00') - new Date(a+'T00:00:00'))/86400000);
+  return d >= 0 ? `${d} dias colhendo` : '';
+}
+function totTxt(t){ return (t.kg>0?`${fmtN(t.kg)} KG`:'') + (t.kg>0&&t.cx>0?' + ':'') + (t.cx>0?`${fmtN(t.cx)} CX`:''); }
+
+function renderColheita(ciclos, colhs){
+  const H = hojeD();
+  const soma = h => ({kg: String(h.unidade).toUpperCase()==='CX' ? 0 : num(h.quantidade),
+                      cx: String(h.unidade).toUpperCase()==='CX' ? num(h.quantidade) : 0});
+
+  // 1) Estufa da semana (últimos 7 dias, só ciclo ativo)
+  const d7 = new Date(); d7.setDate(d7.getDate()-6);
+  const d7s = `${d7.getFullYear()}-${String(d7.getMonth()+1).padStart(2,'0')}-${String(d7.getDate()).padStart(2,'0')}`;
+  const porE = {};
+  colhs.forEach(h=>{
+    const dt = isoD(h.data); if(!dt || dt < d7s || dt > H) return;
+    const c = ciclos.find(x=>String(x.id)===String(h.cicloId));
+    if(c && c.status==='encerrada') return;
+    const e = String(h.estufa||(c&&c.estufa)||'?');
+    porE[e] = porE[e] || {kg:0, cx:0};
+    const s = soma(h); porE[e].kg += s.kg; porE[e].cx += s.cx;
+  });
+  const rank = Object.entries(porE).filter(([,t])=>t.kg>0||t.cx>0)
+    .sort((a,b)=> (b[1].kg-a[1].kg) || (b[1].cx-a[1].cx));
+  document.getElementById('wTop').innerHTML = rank.length ? (() => {
+    const [e, t] = rank[0];
+    const c = ativoE(ciclos, e);
+    const outros = rank.slice(1,3).map(([e2,t2],i)=>`${i===0?'2º':'3º'}: E${esc(e2)} · ${totTxt(t2)}`).join(' &nbsp; ');
+    return `<div class="wtop"><div class="medal">🏆</div><div>
+      <div class="e">Estufa ${esc(e)}</div>
+      <div class="c">${esc((c&&(c.variedade||c.cultura))||'')}</div>
+      <div class="n">${totTxt(t)} <small>nos últimos 7 dias</small></div></div></div>
+      ${outros?`<div class="wtop2">${outros}</div>`:''}`;
+  })() : '<div class="empty">Sem colheita nos últimos 7 dias.</div>';
+
+  // 2) Evolução semanal (KG, últimas 8 semanas seg–dom)
+  // 3) Ranking do mês (KG + CX por estufa)
+  if(window.Chart){
+    const seg = new Date(); seg.setHours(0,0,0,0); seg.setDate(seg.getDate()-((seg.getDay()+6)%7));
+    const lbl = [], kgS = [];
+    for(let i=7;i>=0;i--){
+      const ini = new Date(seg); ini.setDate(seg.getDate()-7*i);
+      const fim = new Date(ini); fim.setDate(ini.getDate()+7);
+      let s = 0;
+      colhs.forEach(h=>{ if(String(h.unidade).toUpperCase()==='CX') return;
+        const dt = isoD(h.data); if(!dt) return;
+        const d = new Date(dt+'T00:00:00');
+        if(d>=ini && d<fim) s += num(h.quantidade); });
+      lbl.push(ini.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})); kgS.push(Math.round(s*100)/100);
+    }
+    new Chart(document.getElementById('chEvol'), {type:'line',
+      data:{labels:lbl, datasets:[{data:kgS, borderColor:'#8FD19A', backgroundColor:'rgba(143,209,154,.15)',
+        fill:true, tension:.35, pointRadius:3}]},
+      options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+
+    const mes = H.slice(0,7);
+    const rk = {};
+    colhs.forEach(h=>{ const dt = isoD(h.data); if(!dt || dt.slice(0,7)!==mes) return;
+      const e = 'E'+String(h.estufa||'?'); rk[e] = rk[e]||{kg:0,cx:0};
+      const s = soma(h); rk[e].kg += s.kg; rk[e].cx += s.cx; });
+    const keys = Object.keys(rk).filter(k=>rk[k].kg>0||rk[k].cx>0).sort();
+    if(keys.length){
+      new Chart(document.getElementById('chRank'), {type:'bar',
+        data:{labels:keys, datasets:[
+          {label:'KG', data:keys.map(k=>Math.round(rk[k].kg*100)/100), backgroundColor:'#3D7A5C', borderRadius:5},
+          {label:'CX', data:keys.map(k=>Math.round(rk[k].cx*100)/100), backgroundColor:'#D9A441', borderRadius:5}]},
+        options:{plugins:{legend:{position:'bottom', labels:{boxWidth:12}}}, scales:{y:{beginAtZero:true}}}});
+      const totM = keys.reduce((a,k)=>({kg:a.kg+rk[k].kg, cx:a.cx+rk[k].cx}), {kg:0,cx:0});
+      document.getElementById('rankLeg').textContent = `Mês atual: ${totTxt(totM)}.`;
+    } else {
+      document.getElementById('rankLeg').textContent = 'Sem colheita neste mês ainda.';
+    }
+  }
+
+  // 4) Mapa das estufas
+  document.getElementById('wMapa').innerHTML = ['1','2','3','4','5','6','7'].map(e=>{
+    const c = ativoE(ciclos, e);
+    if(!c) return `<div class="mini"><b>E${e}</b><span class="cul">—</span><span class="st off">livre</span><span class="tot"> </span></div>`;
+    let kg = 0, cx = 0;
+    colhs.filter(h=>String(h.cicloId)===String(c.id)).forEach(h=>{ const s = soma(h); kg += s.kg; cx += s.cx; });
+    const colhendo = c.dataInicio && hojeD() >= isoD(c.dataInicio);
+    return `<div class="mini"><b>E${e}</b><span class="cul">${esc(c.cultura||'—')}</span>` +
+      `<span class="st ${colhendo?'on':'grow'}">${colhendo?'colhendo':'crescendo'}</span>` +
+      `<span class="tot">${totTxt({kg,cx})||'—'}</span></div>`;
+  }).join('');
+
+  // 5) Safra acumulada
+  const ativas = ciclos.filter(c=>c.status!=='encerrada');
+  document.getElementById('wSafra').innerHTML = ativas.length ? ativas.map(c=>{
+    let kg = 0, cx = 0;
+    colhs.filter(h=>String(h.cicloId)===String(c.id)).forEach(h=>{ const s = soma(h); kg += s.kg; cx += s.cx; });
+    return `<div class="task"><span class="tag colh">E${esc(c.estufa)}</span><div><b>${esc(c.cultura||'Cultura?')} — ${totTxt({kg,cx})||'sem colheita'}</b>` +
+      `<span>${c.variedade?esc(c.variedade)+' · ':''}${diasColhendo(c.dataInicio, c.dataFim)}</span></div></div>`;
+  }).join('') : '<div class="empty">Nenhum ciclo ativo.</div>';
+}
+
+// ===== Carrossel Smart Stack: gira sozinho + avança 1 a cada visita =====
+function initStack(stackId, dotsId, key, ms){
+  const box = document.getElementById(stackId);
+  if(!box || box.dataset.init) return; box.dataset.init = '1';
+  const slides = [...box.querySelectorAll('.slide')];
+  const dotsBox = document.getElementById(dotsId);
+  let idx = 0;
+  try{ idx = ((parseInt(localStorage.getItem(key)||'0',10)||0)+1)%slides.length; }catch(e){}
+  dotsBox.innerHTML = slides.map((_,i)=>`<button data-i="${i}" aria-label="widget ${i+1}"></button>`).join('');
+  const dots = [...dotsBox.children];
+  const show = i => { idx = (i+slides.length)%slides.length;
+    slides.forEach((s,k)=>s.classList.toggle('on', k===idx));
+    dots.forEach((d,k)=>d.classList.toggle('on', k===idx));
+    try{ localStorage.setItem(key, idx); }catch(e){} };
+  let t = null;
+  const restart = () => { if(t) clearInterval(t); t = setInterval(()=>show(idx+1), ms||9000); };
+  dots.forEach(d=>d.onclick=()=>{ show(+d.dataset.i); restart(); });
+  document.querySelectorAll(`.stack-nav button[data-s="${stackId}"]`).forEach(b=>b.onclick=()=>{ show(idx + +b.dataset.dir); restart(); });
+  restart(); show(idx);
 }
 
 // ===== Clima (Open-Meteo, sem chave) =====
