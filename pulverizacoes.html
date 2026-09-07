@@ -87,8 +87,9 @@
   }
   .estufa-chip.sel{background:var(--leaf); color:#fff; border-color:var(--leaf);}
 </style>
+<link rel="stylesheet" href="sidebar.css">
 </head>
-<body>
+<body data-page="pulverizacoes">
 <header>
   <a href="index.html">‹ voltar</a>
   <h1>Pulverizações</h1>
@@ -168,6 +169,7 @@
 </dialog>
 
 <script src="config.js"></script>
+<datalist id="dlEstoque"></datalist>
 <script>
 let dados = [];
 let filtro = 'pendente';
@@ -185,6 +187,17 @@ async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId,
     })});
   } catch(e) { console.warn('Falha ao dar baixa no estoque:', produtoNome, e); }
 }
+
+// Autocompletar com os nomes cadastrados no estoque (evita duplicados por erro de digitação)
+async function carregarNomesEstoque(){
+  try{
+    const r = await fetch(`${API_URL}?tipo=estoque`);
+    const j = await r.json();
+    const dl = document.getElementById('dlEstoque');
+    if(dl) dl.innerHTML = (j.data||[]).map(p => `<option value="${escapeHtml(p.nome)}">`).join('');
+  }catch(e){}
+}
+carregarNomesEstoque();
 
 async function carregar(){
   document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
@@ -360,7 +373,7 @@ function addProdutoRow(nome, dose100, unidade){
   const un = unidade || 'mL';
   row.innerHTML = `
     <div class="prod-row-top">
-      <input type="text" class="nome-input" placeholder="Produto (ex: Amistar Top)" value="${nome ? escapeHtml(nome) : ''}">
+      <input type="text" class="nome-input" list="dlEstoque" placeholder="Produto (ex: Amistar Top)" value="${nome ? escapeHtml(nome) : ''}" autocomplete="off">
       <button type="button" class="rm-row" onclick="removeProdutoRow('${id}')">×</button>
     </div>
     <div class="prod-row-bottom">
@@ -546,5 +559,6 @@ async function excluir(id){
 
 carregar();
 </script>
+<script src="sidebar.js"></script>
 </body>
 </html>
