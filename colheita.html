@@ -69,6 +69,16 @@
   .mov b{font-size:14px;}
   .mov small{display:block; color:#8A968A; font-size:11.5px;}
   .mov .rm{flex:0 0 auto; border:1px solid var(--danger); background:transparent; color:var(--danger); border-radius:8px; font-size:12px; padding:5px 10px; cursor:pointer;}
+  /* Aba Geral: matriz semanas x estufas, só leitura, sem linhas */
+  .mx-wrap{overflow-x:auto; padding-bottom:8px;}
+  .mx{min-width:560px;}
+  .mx-row{display:flex; gap:8px; margin-bottom:8px;}
+  .mx-lab{flex:0 0 76px; font-size:11.5px; color:#8A968A; font-family:ui-monospace,Menlo,monospace; display:flex; align-items:center; justify-content:center; text-align:center;}
+  .mx-cell{flex:1; min-width:0; background:var(--paper); border-radius:10px; padding:9px 4px; font-size:13px; font-weight:700; text-align:center;}
+  .mx-cell small{font-weight:500; color:#54614F; font-size:11px;}
+  .mx-cell.vazia{color:#C4CFC2; font-weight:400; background:transparent;}
+  .mx-cell.head{background:var(--leaf-dark); color:#fff; font-size:12px;}
+  .mx-cell.head small{color:#CFE0D3; display:block; font-weight:500;}
 </style>
 <link rel="stylesheet" href="sidebar.css">
 </head>
@@ -78,8 +88,9 @@
   <h1>Colheita</h1>
   <p>kg e caixas por estufa, por ciclo de plantio.</p>
   <div class="tabs">
-    <div class="tab active" data-f="ativa">Safra ativa</div>
-    <div class="tab" data-f="hist">Histórico de safras</div>
+    <div class="tab active" data-f="geral">Geral</div>
+    <div class="tab" data-f="ativa">Safra ativa</div>
+    <div class="tab" data-f="hist">Histórico</div>
   </div>
   <div class="estufa-filter">
     <label for="filtroEstufaSel">Estufa</label>
@@ -196,7 +207,7 @@
 <script>
 let ciclos = [];
 let colhs = [];
-let aba = 'ativa';
+let aba = 'geral';
 let filtroEstufa = 'todas';
 let editCicloId = null;
 
@@ -217,6 +228,19 @@ function fmtData(v){
 function hojeISO(){
   const d = new Date();
   return d.toISOString().slice(0,10);
+}
+// A planilha às vezes devolve a data com hora (2026-04-27T21:00:00.000Z);
+// o campo de data só aceita aaaa-mm-dd, então normaliza aqui.
+function isoData(v){
+  if(!v) return '';
+  let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m){
+    const a = m[3].length===2 ? '20'+m[3] : m[3];
+    return `${a}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  }
+  return '';
 }
 async function apiGet(tipo){
   const r = await fetch(`${API_URL}?tipo=${tipo}`);
@@ -251,15 +275,83 @@ function totaisDoCiclo(id){
   return {kg, cx};
 }
 function diasColhendo(c){
-  if(!c.dataInicio) return '';
-  const ini = new Date(c.dataInicio+'T00:00:00');
-  const fim = c.dataFim ? new Date(c.dataFim+'T00:00:00') : new Date();
+  const iniISO = isoData(c.dataInicio);
+  if(!iniISO) return '';
+  const ini = new Date(iniISO+'T00:00:00');
+  const fim = isoData(c.dataFim) ? new Date(isoData(c.dataFim)+'T00:00:00') : new Date();
   const d = Math.floor((fim - ini)/86400000);
   return d >= 0 ? d + (d===1?' dia colhendo':' dias colhendo') : '';
 }
 function emColheita(c){
   if(!c.dataInicio) return false;
   return hojeISO() >= c.dataInicio;
+}
+
+// ===== ABA GERAL (só leitura, estilo Excel: semanas x estufas) =====
+function baseSemana(c, lancs){
+  if(isoData(c.dataInicio)) return isoData(c.dataInicio);
+  if(lancs.length){
+    const ds = lancs.map(h=>isoData(h.data||h.dataCriacao)).filter(Boolean).sort();
+    if(ds.length) return ds[0];
+  }
+  return '';
+}
+function numSemana(baseISO, dataISO){
+  if(!baseISO || !dataISO) return 1;
+  const n = Math.floor((new Date(dataISO+'T00:00:00') - new Date(baseISO+'T00:00:00'))/86400000/7)+1;
+  return n < 1 ? 1 : n;
+}
+function somaDiasISO(iso, dias){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+dias);
+  return d.toISOString().slice(0,10);
+}
+function ddmm(iso){
+  if(!iso) return '';
+  const m = iso.match(/^\d{4}-(\d{2})-(\d{2})/);
+  return m ? `${m[2]}/${m[3]}` : iso;
+}
+function renderGeral(list){
+  let estufas = ['1','2','3','4','5','6','7'];
+  if(filtroEstufa !== 'todas') estufas = [filtroEstufa];
+  const cols = estufas.map(e=>{
+    const c = ativoDaEstufa(e);
+    if(!c) return {e, c:null, sems:{}, max:0, base:'', tot:{kg:0,cx:0}};
+    const lancs = colhs.filter(h=>h.cicloId===c.id || (!h.cicloId && String(h.estufa)===String(e)));
+    const base = baseSemana(c, lancs);
+    const sems = {}, tot = {kg:0, cx:0};
+    let max = 0;
+    lancs.forEach(h=>{
+      const dt = isoData(h.data||h.dataCriacao);
+      const n = numSemana(base, dt);
+      if(n > max) max = n;
+      sems[n] = sems[n] || {kg:0, cx:0, last:''};
+      if(String(h.unidade).toUpperCase()==='CX'){ sems[n].cx += num(h.quantidade); tot.cx += num(h.quantidade); }
+      else{ sems[n].kg += num(h.quantidade); tot.kg += num(h.quantidade); }
+      if(dt && dt > (sems[n].last||'')) sems[n].last = dt;
+    });
+    return {e, c, sems, max, base, tot};
+  });
+  const maxGeral = Math.max(0, ...cols.map(k=>k.max));
+  if(!cols.some(k=>k.c)){ list.innerHTML = '<div class="empty">Sem ciclo ativo. Vá em Safra ativa para iniciar.</div>'; return; }
+  const cell = v => {
+    if(!v || (v.kg<=0 && v.cx<=0)) return '<div class="mx-cell vazia">—</div>';
+    let t = v.kg>0 ? `${fmt(v.kg)} <small>KG</small>` : '';
+    if(v.cx>0) t += (t?'<br>':'') + `${fmt(v.cx)} <small>CX</small>`;
+    if(v.last) t += `<br><small>${ddmm(v.last)}</small>`;
+    return `<div class="mx-cell">${t}</div>`;
+  };
+  let html = '<div class="mx-wrap"><div class="mx">';
+  html += '<div class="mx-row"><div class="mx-lab"></div>' + cols.map(k=>
+    k.c ? `<div class="mx-cell head">E${k.e}<small>${k.tot.kg>0?fmt(k.tot.kg)+' KG':''}${k.tot.kg>0&&k.tot.cx>0?' · ':''}${k.tot.cx>0?fmt(k.tot.cx)+' CX':''}${k.base?'<br>ini '+ddmm(k.base):''}</small></div>`
+        : `<div class="mx-cell head">E${k.e}</div>`
+  ).join('') + '</div>';
+  for(let s=1; s<=maxGeral; s++){
+    html += `<div class="mx-row"><div class="mx-lab">S${s}</div>` +
+      cols.map(k=>cell(k.sems[s])).join('') + '</div>';
+  }
+  html += '</div></div>';
+  list.innerHTML = html;
 }
 
 function cardCiclo(c){
@@ -286,6 +378,7 @@ function cardCiclo(c){
 
 function render(){
   const list = document.getElementById('list');
+  if(aba === 'geral'){ renderGeral(list); return; }
   if(aba === 'hist'){
     let fins = ciclos.filter(c => c.status === 'encerrada')
       .sort((a,b)=> String(b.dataFim||'') < String(a.dataFim||'') ? -1 : 1);
@@ -351,8 +444,8 @@ function editarCiclo(id){
   document.getElementById('cEstufa').value = c.estufa || '1';
   document.getElementById('cCultura').value = c.cultura || 'Tomate';
   document.getElementById('cVariedade').value = c.variedade || '';
-  document.getElementById('cPlantio').value = c.dataPlantio || '';
-  document.getElementById('cInicio').value = c.dataInicio || '';
+  document.getElementById('cPlantio').value = isoData(c.dataPlantio);
+  document.getElementById('cInicio').value = isoData(c.dataInicio);
   document.getElementById('cObs').value = c.obs || '';
   document.getElementById('btnExcluirCiclo').style.display = 'block';
   document.getElementById('dlgCiclo').showModal();
