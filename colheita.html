@@ -137,6 +137,9 @@
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="baixarBackup()">Baixar backup (CSV)</button>
     </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="fundirSemanas()">Fundir lançamentos em semanas (ex: pepino 3x/semana)</button>
+    </div>
   </div>
 </dialog>
 
@@ -679,6 +682,23 @@ async function salvarImportados(){
   btn.disabled = false; btn.textContent = 'Salvar tudo';
   document.getElementById('impStatus').textContent = `Pronto! ${nc} ciclos e ${nl} lançamentos importados.`;
   document.getElementById('dlgImp').close();
+  carregar();
+}
+// Junta N lançamentos consecutivos em 1 semana (pepino colhe 3x/semana
+// e cada colheita virou um lançamento separado na importação).
+async function fundirSemanas(){
+  const est = prompt('Qual estufa? (número)', filtroEstufa==='todas' ? '4' : filtroEstufa);
+  if(!est) return;
+  const c = ciclos.find(x=>String(x.estufa)===String(est)&&x.status==='ativa');
+  const nStr = prompt('Quantas colheitas por semana? (pepino = 3)', '3');
+  const n = Math.max(2, parseInt(nStr,10)||3);
+  const ini = prompt('Início correto da colheita (aaaa-mm-dd)', isoData(c&&c.dataInicio)||'');
+  if(!ini) return;
+  const qtd = colhs.filter(h=>String(h.estufa)===String(est)).length;
+  if(!qtd){ alert('Nenhum lançamento na estufa '+est); return; }
+  if(!confirm(`Juntar os ${qtd} lançamentos da estufa ${est} de ${n} em ${n}, a partir de ${ini}?\nIsso APAGA os lançamentos atuais e grava as semanas somadas.`)) return;
+  const r = await apiPost({action:'fundirSemanas', estufa:est, porSemana:n, inicio:ini});
+  alert(r.ok ? `Pronto! ${r.fundidos} lançamentos viraram ${r.semanas} semanas.` : ('Erro: '+(r.error||'falha')));
   carregar();
 }
 // Backup em CSV (abre no Excel)
