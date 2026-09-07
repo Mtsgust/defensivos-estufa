@@ -140,6 +140,9 @@
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="fundirSemanas()">Fundir lançamentos em semanas (ex: pepino 3x/semana)</button>
     </div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="trocarSemanas()">Corrigir semanas de uma estufa (digitar valores)</button>
+    </div>
   </div>
 </dialog>
 
@@ -699,6 +702,26 @@ async function fundirSemanas(){
   if(!confirm(`Juntar os ${qtd} lançamentos da estufa ${est} de ${n} em ${n}, a partir de ${ini}?\nIsso APAGA os lançamentos atuais e grava as semanas somadas.`)) return;
   const r = await apiPost({action:'fundirSemanas', estufa:est, porSemana:n, inicio:ini});
   alert(r.ok ? `Pronto! ${r.fundidos} lançamentos viraram ${r.semanas} semanas.` : ('Erro: '+(r.error||'falha')));
+  carregar();
+}
+// Troca a série semanal de uma estufa pelos valores digitados (corrige fusões erradas).
+async function trocarSemanas(){
+  const est = prompt('Qual estufa? (número)', filtroEstufa==='todas' ? '4' : filtroEstufa);
+  if(!est) return;
+  const c = ciclos.find(x=>String(x.estufa)===String(est)&&x.status==='ativa');
+  const atuais = colhs.filter(h=>String(h.estufa)===String(est))
+    .sort((a,b)=>String(a.data)<String(b.data)?-1:1);
+  const un = (atuais[0] && atuais[0].unidade) || 'CX';
+  const serie = atuais.map(h=>fmt(num(h.quantidade))).join(',');
+  const valStr = prompt(`Valores semanais separados por vírgula (atual: ${serie||'—'})`, serie);
+  if(!valStr) return;
+  const ini = prompt('Início da semana 1 (aaaa-mm-dd)', isoData(c&&c.dataInicio)||'');
+  if(!ini) return;
+  const vals = valStr.split(',').map(x=>num(x)).filter(x=>x>0);
+  if(!vals.length){ alert('Nenhum valor válido.'); return; }
+  if(!confirm(`Estufa ${est}: apagar ${atuais.length} lançamentos e gravar ${vals.length} semanas (${un}) a partir de ${ini}?\nTotal: ${fmt(vals.reduce((a,b)=>a+b,0))} ${un}`)) return;
+  const r = await apiPost({action:'trocarLancamentos', estufa:est, valores:vals.join(','), unidade:un, inicio:ini});
+  alert(r.ok ? `Pronto! ${r.semanas} semanas gravadas (total ${fmt(r.total)} ${un}).` : ('Erro: '+(r.error||'falha')));
   carregar();
 }
 // Backup em CSV (abre no Excel)
