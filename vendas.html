@@ -36,11 +36,16 @@
   .alert{font-size:10px; padding:2px 7px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
   .alert.ok{background:#DCEFE3; color:var(--feito);}
   .alert.zero{background:#F7DAD2; color:var(--danger);}
-  .item h3{margin:5px 0 1px; font-size:13px; font-weight:600;}
-  .total{font-size:16px; font-weight:700; margin:2px 0 0;}
-  .total small{font-size:13px; font-weight:500; color:#54614F;}
-  .item.recebido .total{color:var(--feito);}
-  .item.pendente .total{color:var(--danger);}
+  .item h3{margin:0; font-size:13px; font-weight:600;}
+  .l1{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-top:4px;}
+  .l1 span{font-size:12.5px;}
+  .l1 b{font-size:15px; white-space:nowrap;}
+  .item.recebido .l1 b{color:var(--feito);}
+  .item.pendente .l1 b{color:var(--danger);}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start;}
+  .colh{font-size:13px; font-weight:700; margin:2px 0 8px; display:flex; justify-content:space-between;}
+  .colh span:last-child{color:#8A968A; font-weight:500;}
+  @media (max-width:860px){ .cols{grid-template-columns:1fr;} }
   .meta{font-size:11px; color:#8A968A; margin-top:2px;}
   .actions{display:flex; gap:8px; margin-top:6px;}
   .actions button{flex:1; border-radius:8px; padding:6px 0; font-size:12px; font-weight:600; cursor:pointer;}
@@ -224,7 +229,13 @@ function render(){
     return true;
   });
   if(!list.length){ document.getElementById('list').innerHTML = '<div class="empty">Nenhuma venda.</div>'; return; }
-  document.getElementById('list').innerHTML = list.map(v=>{
+  const tom = list.filter(v=>String(v.cultura||'').toLowerCase()!=='pepino');
+  const pep = list.filter(v=>String(v.cultura||'').toLowerCase()==='pepino');
+  const col = (t,arr)=>'<div><div class="colh"><span>'+t+'</span><span>'+arr.length+' vendas</span></div>'+
+    (arr.length ? arr.map(cardV).join('') : '<div class="empty">Nada aqui.</div>')+'</div>';
+  document.getElementById('list').innerHTML = '<div class="cols">'+col('Tomate',tom)+col('Pepino',pep)+'</div>';
+}
+function cardV(v){
     const rec = String(v.status)==='recebido';
     const qp = num(v.qtdPaga) > 0 ? num(v.qtdPaga) : num(v.quantidade);
     const detalhe = num(v.qtdPaga) > 0
@@ -233,8 +244,7 @@ function render(){
     return '<div class="item '+(rec?'recebido':'pendente')+'">' +
       '<div class="item-top"><span class="cat">'+esc(v.comprador||'—')+'</span>' +
       '<span class="alert '+(rec?'ok':'zero')+'">'+(rec?'Recebido':'A receber')+'</span></div>' +
-      '<h3>'+esc(detalhe)+'</h3>' +
-      '<div class="total">'+BRL(v.total)+'</div>' +
+      '<div class="l1"><span>'+esc(detalhe)+'</span><b>'+BRL(v.total)+'</b></div>' +
       '<div class="meta">'+fmtData(v.data)+' · '+esc(v.cultura||'')+(v.obs?' · '+esc(v.obs):'')+'</div>' +
       '<div class="actions">' +
         (rec
@@ -242,7 +252,6 @@ function render(){
           : '<button class="btn-in" onclick="alternarStatus(\''+v.id+'\')">Marcar recebido</button>') +
         '<button class="btn-edit" onclick="openVenda(\''+v.id+'\')">✎</button>' +
       '</div></div>';
-  }).join('');
 }
 function fmtQtd(q, u){ const n = Math.round(num(q)*100)/100; return n.toString().replace('.',',')+' '+(u||'KG'); }
 
