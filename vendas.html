@@ -25,27 +25,25 @@
   .res{display:flex; gap:8px; margin-bottom:8px;}
   .ritem{flex:1; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 6px; text-align:center;}
   .ritem span{font-size:11px; color:#8A968A; display:block;}
-  .ritem b{font-size:14px;}
+  .ritem b{font-size:13px;}
   .ritem.ok b{color:var(--feito);} .ritem.no b{color:var(--danger);}
-  .res2{font-size:12px; color:#54614F; text-align:center; margin:0 0 12px;}
-  .res2 b{color:var(--ink);}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
-  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px;}
+  .item{background:var(--paper); border:1px solid var(--line); border-radius:10px; padding:8px 10px; margin-bottom:6px;}
   .item.recebido{border-color:#9CCBAC; background:#FAFDFB;}
   .item.pendente{border-color:#E08A7A; background:#FFF9F7;}
   .item-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
-  .cat{font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; background:#E4EFE6; color:var(--feito);}
-  .alert{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
+  .cat{font-size:10px; padding:2px 8px; border-radius:20px; font-weight:600; background:#E4EFE6; color:var(--feito);}
+  .alert{font-size:10px; padding:2px 7px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
   .alert.ok{background:#DCEFE3; color:var(--feito);}
   .alert.zero{background:#F7DAD2; color:var(--danger);}
-  .item h3{margin:6px 0 1px; font-size:14px; font-weight:600;}
-  .total{font-size:18px; font-weight:700; margin:2px 0 0;}
+  .item h3{margin:5px 0 1px; font-size:13px; font-weight:600;}
+  .total{font-size:16px; font-weight:700; margin:2px 0 0;}
   .total small{font-size:13px; font-weight:500; color:#54614F;}
   .item.recebido .total{color:var(--feito);}
   .item.pendente .total{color:var(--danger);}
-  .meta{font-size:11.5px; color:#8A968A; margin-top:3px;}
-  .actions{display:flex; gap:8px; margin-top:8px;}
-  .actions button{flex:1; border-radius:8px; padding:7px 0; font-size:12.5px; font-weight:600; cursor:pointer;}
+  .meta{font-size:11px; color:#8A968A; margin-top:2px;}
+  .actions{display:flex; gap:8px; margin-top:6px;}
+  .actions button{flex:1; border-radius:8px; padding:6px 0; font-size:12px; font-weight:600; cursor:pointer;}
   .btn-in{background:var(--feito); color:#fff; border:none;}
   .btn-out{background:transparent; color:var(--pend); border:1px solid var(--pend) !important;}
   .btn-edit{background:transparent; color:#8A968A; border:1px solid var(--line) !important; flex:0 0 44px !important;}
@@ -94,7 +92,11 @@
     <div class="ritem no"><span>A receber</span><b id="tPen">—</b></div>
     <div class="ritem"><span>Total geral</span><b id="tTot">—</b></div>
   </div>
-  <div class="res2" id="resQtd"></div>
+  <div class="res">
+    <div class="ritem"><span>KG vendidos</span><b id="qKg">—</b></div>
+    <div class="ritem"><span>CX vendidas</span><b id="qCx">—</b></div>
+    <div class="ritem no"><span>Falta receber</span><b id="qPen">—</b></div>
+  </div>
   <div id="list"><div class="loading">Carregando…</div></div>
 </main>
 
@@ -209,8 +211,9 @@ function totais(){
   document.getElementById('tPen').textContent = BRL(pen);
   document.getElementById('tTot').textContent = BRL(rec+pen);
   const fq = n => (Math.round(n*100)/100).toString().replace('.',',');
-  document.getElementById('resQtd').innerHTML =
-    'Vendido: <b>'+fq(kg)+' KG + '+fq(cx)+' CX</b> · Falta receber: <b>'+fq(kgP)+' KG + '+fq(cxP)+' CX</b>';
+  document.getElementById('qKg').textContent = fq(kg)+' KG';
+  document.getElementById('qCx').textContent = fq(cx)+' CX';
+  document.getElementById('qPen').textContent = fq(kgP)+' KG + '+fq(cxP)+' CX';
 }
 function render(){
   totais();
