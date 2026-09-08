@@ -53,14 +53,15 @@
   .btn-save{background:var(--leaf); color:#fff;}
 </style>
   <link rel="stylesheet" href="sidebar.css">
+<link rel="stylesheet" href="theme.css">
 </head>
-<body data-page="bulario">
+<body data-page="bulario" class="tdark">
 <header>
   <a href="index.html">‹ voltar</a>
   <h1>Bulário</h1>
 </header>
 <main>
-  <input class="search" id="bu-search" type="text" placeholder="Buscar produto...">
+  <input class="search" id="bu-search" type="text" placeholder="Buscar produto, praga, doença ou ingrediente...">
   <div class="subnav">
     <div class="chip active" data-c="todos">Todos</div>
     <div class="chip" data-c="Fungicida">Fungicidas</div>
@@ -368,7 +369,11 @@ function render(){
   const wrap = document.getElementById('bu-list');
   let itens = lista.filter(p => {
     if(filtroCat !== 'todos' && p.categoria !== filtroCat) return false;
-    if(busca && !p.nome.toLowerCase().includes(busca.toLowerCase())) return false;
+    if(busca){
+      const q = busca.toLowerCase();
+      const alvo = ((p.nome||'')+' '+(p.ingredienteAtivo||'')+' '+(p.alvos||'')).toLowerCase();
+      if(!alvo.includes(q)) return false;
+    }
     return true;
   }).sort((a,b) => a.nome.localeCompare(b.nome));
 
@@ -377,7 +382,10 @@ function render(){
   wrap.innerHTML = itens.map(p => `
     <div class="prod" id="prod-${p.id}">
       <div class="prod-head" onclick="toggle('${p.id}')">
-        <span class="name">${escapeHtml(p.nome)}</span>
+        ${p.foto
+          ? `<div class="ptile" style="width:46px;height:46px;flex-basis:46px;font-size:18px"><img src="${escapeHtml(p.foto)}" alt="" loading="lazy" onerror="this.remove()"></div>`
+          : `<div class="ptile" style="width:46px;height:46px;flex-basis:46px;font-size:18px">${escapeHtml(String(p.nome||'?').trim().charAt(0).toUpperCase())}</div>`}
+        <span class="name" style="flex:1">${escapeHtml(p.nome)}${p.alvos?`<br><small style="font-weight:400;font-size:11.5px;color:#8A968A">${escapeHtml(p.alvos)}</small>`:''}</span>
         <span class="cat ${p.categoria === 'Fungicida' ? 'fung' : 'inset'}">${p.categoria === 'Fungicida' ? 'Fungicida' : 'Inset./Acaricida'}</span>
       </div>
       <div class="prod-body">
@@ -395,7 +403,11 @@ function render(){
           <div class="field"><label>Carência</label><input id="ca-${p.id}" value="${escapeHtml(p.carencia||'')}"></div>
         </div>
         <div class="field"><label>Dose</label><input id="do-${p.id}" value="${escapeHtml(p.dose||'')}" placeholder="ex: 70 g/100L água (tomate)"></div>
-        <div class="field"><label>Link da bula oficial</label><input id="bl-${p.id}" value="${escapeHtml(p.bulaLink||'')}" placeholder="https://..."></div>
+        <div class="field"><label>Pragas / doenças que controla</label><input id="al-${p.id}" value="${escapeHtml(p.alvos||'')}" placeholder="ex: mosca-branca, oídio, tripes"></div>
+        <div class="row2">
+          <div class="field"><label>Link da bula oficial</label><input id="bl-${p.id}" value="${escapeHtml(p.bulaLink||'')}" placeholder="https://..."></div>
+          <div class="field"><label>Foto (link, opcional)</label><input id="ft-${p.id}" value="${escapeHtml(p.foto||'')}" placeholder="https://..."></div>
+        </div>
         ${p.bulaLink ? `<div style="margin:-4px 0 10px;"><a href="${escapeHtml(p.bulaLink)}" target="_blank" rel="noopener" style="font-size:12.5px; color:var(--leaf);">Abrir bula ↗</a></div>` : ''}
         <div class="field"><label>Observação</label><textarea id="ob-${p.id}" rows="2">${escapeHtml(p.obs||'')}</textarea></div>
         <button class="prod-save" onclick="salvarProduto('${p.id}')">Salvar produto</button>
@@ -417,7 +429,9 @@ async function salvarProduto(id){
     classeToxicologica: document.getElementById('ct-' + id).value,
     carencia: document.getElementById('ca-' + id).value,
     dose: document.getElementById('do-' + id).value,
+    alvos: document.getElementById('al-' + id).value,
     bulaLink: document.getElementById('bl-' + id).value,
+    foto: document.getElementById('ft-' + id).value.trim(),
     obs: document.getElementById('ob-' + id).value
   };
   Object.assign(p, atualizado);
@@ -454,7 +468,7 @@ async function salvarNovo(){
   if(!nome){ alert('Digite o nome do produto.'); return; }
   const novo = {
     nome, categoria: document.getElementById('fCategoria').value,
-    ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:''
+    ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:'', foto:'', alvos:''
   };
   aplicarRef(novo);
   document.getElementById('dialog').close();
@@ -475,7 +489,7 @@ async function completarPadrao(){
   try{
     for(const [nome, categoria] of faltando){
       if(lista.some(p => p.nome === nome)) continue; // re-checa (segurança contra duplicar)
-      const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:'' };
+      const novo = { nome, categoria, ingredienteAtivo:'', classeToxicologica:'', dose:'', carencia:'', obs:'', bulaLink:'', foto:'', alvos:'' };
       aplicarRef(novo);
       try{
         const res = await apiCall('add', { data: novo });
@@ -507,7 +521,7 @@ async function preencherDados(){
       await apiCall('update', { id: p.id, data: {
         categoria: p.categoria, ingredienteAtivo: p.ingredienteAtivo || '',
         classeToxicologica: p.classeToxicologica || '', dose: p.dose || '',
-        carencia: p.carencia || '', bulaLink: p.bulaLink || ''
+        carencia: p.carencia || '', bulaLink: p.bulaLink || '', foto: p.foto || '', alvos: p.alvos || ''
       }});
       ok++;
       st.textContent = `Preenchendo ${ok}/${alvos.length}…`;

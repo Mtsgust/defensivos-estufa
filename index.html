@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Painel — Estufas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0D1B13; --bg2:#10241A; --card:#152A1F; --card2:#1A3327;
@@ -12,8 +14,8 @@
     --radius:16px;
   }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--bg); color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
+  body{margin:0; background:radial-gradient(1200px 500px at 80% -10%, #16301f 0%, #0D1B13 55%) fixed, var(--bg); color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; min-height:100vh;}
   .app{display:flex; min-height:100vh;}
 
   /* ===== Sidebar (abas da esquerda) ===== */
@@ -39,8 +41,10 @@
     padding:8px 14px; border-radius:20px; white-space:nowrap;}
 
   .grid{display:grid; gap:14px;}
-  .stats{grid-template-columns:repeat(4, 1fr);}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px;}
+  .stats{grid-template-columns:repeat(3, 1fr);}
+  .card{background:linear-gradient(180deg,var(--card2),var(--card)); border:1px solid var(--line); border-radius:22px; padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35); transition:transform .18s ease, box-shadow .18s ease;}
+  .card:hover{transform:translateY(-2px); box-shadow:0 14px 34px rgba(0,0,0,.45);}
   .stat .lbl{font-size:12px; color:var(--mut); display:flex; align-items:center; gap:7px;}
   .stat .dot{width:9px; height:9px; border-radius:50%; background:var(--lime);}
   .stat .num{font-size:34px; font-weight:800; margin:8px 0 2px;}
@@ -135,6 +139,8 @@
       <a href="colheita.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M6 21v-9M12 21V5M18 21v-12"/></svg>Colheita</a>
       <a href="vendas.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M5 8l7-5 7 5M5 8c0 5 3 9 7 9s7-4 7-9"/></svg>Vendas</a>
       <a href="bulario.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h13"/></svg>Bulário</a>
+      <a href="relatorios.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Relatórios</a>
+      <a href="configuracoes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>Configurações</a>
     </nav>
     <div class="foot">v1 · dados da planilha</div>
   </aside>
@@ -166,6 +172,16 @@
         <div class="lbl"><span class="dot"></span>Produtos no estoque</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="estoque.html">Ver produtos →</a>
+      </div>
+      <div class="card stat" id="cAtivas">
+        <div class="lbl"><span class="dot"></span>Estufas ativas</div>
+        <div class="num">—</div><div class="sub"></div>
+        <a class="link" href="colheita.html">Ver colheita →</a>
+      </div>
+      <div class="card stat" id="cSemana">
+        <div class="lbl"><span class="dot"></span>Pulverizações da semana</div>
+        <div class="num">—</div><div class="sub"></div>
+        <a class="link" href="pulverizacoes.html">Ver agenda →</a>
       </div>
     </div>
 
@@ -261,6 +277,17 @@ async function carregarPainel(){
     const [pulv, nutr, est] = await Promise.all([get('pulverizacao'), get('nutricao'), get('estoque')]);
     let ciclos = [], colhs = [];
     try{ [ciclos, colhs] = await Promise.all([get('ciclos'), get('colheitas')]); }catch(e){}
+    const ativas = ciclos.filter(c=>c.status!=='encerrada');
+    const cults = [...new Set(ativas.map(c=>c.cultura).filter(Boolean))];
+    setStat('cAtivas', ativas.length, '/ 7', cults.length ? cults.slice(0,3).join(', ') : 'nenhuma cultura', '');
+    // Pulverizações da semana (seg–dom): previstas + feitas
+    const seg = new Date(); seg.setHours(0,0,0,0); seg.setDate(seg.getDate()-((seg.getDay()+6)%7));
+    const dom = new Date(seg); dom.setDate(seg.getDate()+7);
+    const naSemana = d => { const s = d.status==='feito' ? d.dataExecucao : d.dataPrevista;
+      if(!s) return false; const dt = new Date(s.length===10 ? s+'T00:00:00' : s); return dt >= seg && dt < dom; };
+    const ps = pulv.filter(naSemana);
+    const feitas = ps.filter(d=>d.status==='feito').length;
+    setStat('cSemana', ps.length, '', feitas+' feita(s) · '+(ps.length-feitas)+' a fazer', ps.length-feitas?'warn':'');
     const pP = pulv.filter(d=>d.status!=='feito'), pN = nutr.filter(d=>d.status!=='feito');
     const aP = pP.filter(ehAtrasado).length, aN = pN.filter(ehAtrasado).length;
     const baixo = est.filter(p=>{ const s=num(p.estoqueAtual); return s<=0 || (num(p.estoqueMinimo)>0 && s<=num(p.estoqueMinimo)); });

@@ -68,8 +68,9 @@
   .mov small{display:block; color:#8A968A; font-size:11.5px;}
 </style>
 <link rel="stylesheet" href="sidebar.css">
+<link rel="stylesheet" href="theme.css">
 </head>
-<body data-page="estoque">
+<body data-page="estoque" class="tdark">
 <header>
   <a href="index.html">‹ voltar</a>
   <h1>Estoque</h1>
@@ -120,6 +121,7 @@
       <div class="field"><label>Estoque mínimo (alerta)</label><input id="pMinimo" type="number" step="any" inputmode="decimal" value="0"></div>
     </div>
     <div class="field"><label>Fornecedor</label><input id="pFornecedor" type="text" placeholder="opcional"></div>
+    <div class="field"><label>Foto (link da imagem, opcional)</label><input id="pFoto" type="url" inputmode="url" placeholder="https://..."></div>
     <div class="field"><label>Observação</label><textarea id="pObs" rows="2"></textarea></div>
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="document.getElementById('dlgProduto').close()">Cancelar</button>
@@ -288,14 +290,29 @@ function render(){
       ? `${fmt(num(p.estoqueAtual))} <small>/ ${fmt(comprado)} ${escapeHtml(p.unidade||'')}</small>`
       : `${fmt(num(p.estoqueAtual))} <small>${escapeHtml(p.unidade||'')}</small>`;
     const dispTxt = comprado > 0 ? `Disponível ${fmt(num(p.estoqueAtual))} de ${fmt(comprado)} ${escapeHtml(p.unidade||'')} · ` : '';
+    // Barra de quantidade: % do comprado (ou do mínimo x2); cor por status
+    const ref = comprado > 0 ? comprado : (num(p.estoqueMinimo) > 0 ? num(p.estoqueMinimo)*2 : 0);
+    const pct = ref > 0 ? Math.max(0, Math.min(100, num(p.estoqueAtual)/ref*100)) : (st.k==='ok'?100:0);
+    const barCls = st.k==='zero' ? 'danger' : (st.k==='low' ? 'warn' : 'ok');
+    const inicial = escapeHtml(String(p.nome||'?').trim().charAt(0).toUpperCase());
+    const tile = p.foto
+      ? `<div class="ptile"><img src="${escapeHtml(p.foto)}" alt="" loading="lazy" onerror="this.remove()"></div>`
+      : `<div class="ptile">${inicial}</div>`;
     return `
     <div class="item ${cls}">
       <div class="item-top">
         <span class="cat">${escapeHtml(p.categoria||'Outro')}</span>
         <span class="alert ${st.k}">${st.label}</span>
       </div>
-      <h3>${escapeHtml(p.nome)}</h3>
-      <div class="saldo">${saldoTxt}</div>
+      <div class="prow" style="margin-top:8px">
+        ${tile}
+        <div style="flex:1; min-width:0">
+          <h3 style="margin:0">${escapeHtml(p.nome)}</h3>
+          <div class="saldo">${saldoTxt}</div>
+        </div>
+      </div>
+      <div class="qbar ${barCls}"><i style="width:${pct}%"></i></div>
+      <span class="qbar-lbl">${st.k==='ok' ? Math.round(pct)+'% do total comprado' : (st.k==='low' ? 'Acabando — abaixo do mínimo' : 'Zerado — precisa comprar')}</span>
       <div class="meta">${dispTxt}Mínimo: ${fmt(num(p.estoqueMinimo))} ${escapeHtml(p.unidade||'')} ${p.fornecedor?' · '+escapeHtml(p.fornecedor):''}</div>
       <div class="actions">
         <button class="btn-in" onclick="openMov('${p.id}','entrada')">+ Entrada</button>
@@ -325,6 +342,7 @@ function openProduto(){
   document.getElementById('pSaldo').value='0';
   document.getElementById('pMinimo').value='0';
   document.getElementById('pFornecedor').value='';
+  document.getElementById('pFoto').value='';
   document.getElementById('pObs').value='';
   document.getElementById('dlgProduto').showModal();
 }
@@ -338,6 +356,7 @@ function editarProduto(id){
   document.getElementById('pSaldo').value=p.estoqueAtual||0;
   document.getElementById('pMinimo').value=p.estoqueMinimo||0;
   document.getElementById('pFornecedor').value=p.fornecedor||'';
+  document.getElementById('pFoto').value=p.foto||'';
   document.getElementById('pObs').value=p.obs||'';
   document.getElementById('btnExcluirProd').style.display='block';
   document.getElementById('dlgProduto').showModal();
@@ -367,6 +386,7 @@ async function salvarProduto(){
     unidade: document.getElementById('pUnidade').value,
     estoqueMinimo: document.getElementById('pMinimo').value,
     fornecedor: document.getElementById('pFornecedor').value,
+    foto: document.getElementById('pFoto').value.trim(),
     obs: document.getElementById('pObs').value
   };
   const saldoIni = num(document.getElementById('pSaldo').value);

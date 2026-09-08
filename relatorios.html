@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Relatórios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0D1B13; --bg2:#10241A; --card:#152A1F; --card2:#1A3327;
+    --line:#24402F; --ink:#E9F2EA; --mut:#9DB8A4; --dim:#6E8A75;
+    --leaf:#3D7A5C; --lime:#8FD19A; --gold:#D9A441; --red:#E0785F; --blue:#5C8FD1;}
+  *{box-sizing:border-box;}
+  body{margin:0; background:radial-gradient(1200px 500px at 80% -10%, #16301f 0%, #0D1B13 55%) fixed, var(--bg); color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; min-height:100vh; padding-bottom:60px;}
+  header{background:linear-gradient(180deg,#123024,#0E2318); padding:16px 20px 20px; position:sticky; top:0; z-index:5; border-bottom:1px solid var(--line);}
+  header a{color:var(--lime); text-decoration:none; font-size:13px;}
+  header h1{margin:6px 0 0; font-size:20px; font-weight:800; letter-spacing:-.02em;}
+  header p{margin:4px 0 0; font-size:12.5px; color:var(--mut);}
+  main{padding:16px 20px; max-width:1000px;}
+  .grid{display:grid; gap:14px;} .kpis{grid-template-columns:repeat(3,1fr);}
+  .card{background:linear-gradient(180deg,var(--card2),var(--card)); border:1px solid var(--line);
+    border-radius:22px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.35);}
+  .card h2{margin:0 0 10px; font-size:15px;}
+  .kpi .lbl{font-size:12px; color:var(--mut); font-weight:600;}
+  .kpi .num{font-size:26px; font-weight:800; margin-top:6px;}
+  .kpi .num small{font-size:13px; color:var(--mut); font-weight:500;}
+  .cols2{grid-template-columns:1fr 1fr; margin-top:14px;}
+  canvas{max-height:240px;}
+  .legend{font-size:11.5px; color:var(--dim); margin-top:8px;}
+  .rank{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13.5px;}
+  .rank:last-child{border:none;} .rank b{color:var(--lime);}
+  .empty{color:var(--dim); font-size:13px; text-align:center; padding:16px 0;}
+  @media (max-width:860px){ .kpis{grid-template-columns:1fr;} .cols2{grid-template-columns:1fr;} }
+</style>
+<link rel="stylesheet" href="sidebar.css">
+</head>
+<body data-page="relatorios">
+<header>
+  <a href="index.html">‹ voltar</a>
+  <h1>Relatórios</h1>
+  <p>Resumo da produção e das vendas a partir da planilha.</p>
+</header>
+<main>
+  <div class="grid kpis">
+    <div class="card kpi"><div class="lbl">Receita recebida (mês)</div><div class="num" id="kRec">—</div></div>
+    <div class="card kpi"><div class="lbl">Colhido no mês</div><div class="num" id="kCol">—</div></div>
+    <div class="card kpi"><div class="lbl">Tarefas feitas (mês)</div><div class="num" id="kTar">—</div></div>
+  </div>
+  <div class="grid cols2">
+    <div class="card"><h2>Vendas por mês (R$ recebido)</h2><canvas id="chVendas"></canvas></div>
+    <div class="card"><h2>Colheita por mês (KG)</h2><canvas id="chCol"></canvas></div>
+  </div>
+  <div class="grid cols2">
+    <div class="card"><h2>Top compradores (total)</h2><div id="rkComp"><div class="empty">Carregando…</div></div></div>
+    <div class="card"><h2>Colheita por cultura (total KG)</h2><div id="rkCult"><div class="empty">Carregando…</div></div></div>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
+<script>
+const num = v => { const n = parseFloat(String(v??'').replace(',','.')); return isNaN(n)?0:n; };
+const BRL = v => (Math.round(num(v)*100)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const isoD = v => { if(!v) return ''; const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[1]+'-'+m[2]+'-'+m[3] : ''; };
+async function get(t){ try{ return ((await (await fetch(API_URL+'?tipo='+t)).json()).data)||[]; }catch(e){ return []; } }
+function mesesAtras(n){ const out=[]; const d=new Date(); d.setDate(1);
+  for(let i=n-1;i>=0;i--){ const m=new Date(d); m.setMonth(d.getMonth()-i);
+    out.push(m.toISOString().slice(0,7)); } return out; }
+function nomeMes(ym){ const [a,m]=ym.split('-'); return m+'/'+a.slice(2); }
+async function carregar(){
+  const [vendas, colhs, ciclos, pulv, nutr] = await Promise.all(
+    ['vendas','colheitas','ciclos','pulverizacao','nutricao'].map(get));
+  const mes = new Date().toISOString().slice(0,7);
+  const recMes = vendas.filter(v=>String(v.status)==='recebido' && isoD(v.data).slice(0,7)===mes)
+    .reduce((a,v)=>a+num(v.total),0);
+  document.getElementById('kRec').textContent = BRL(recMes);
+  let kgMes = 0, cxMes = 0;
+  colhs.forEach(h=>{ if(isoD(h.data).slice(0,7)!==mes) return;
+    if(String(h.unidade).toUpperCase()==='CX') cxMes += num(h.quantidade); else kgMes += num(h.quantidade); });
+  document.getElementById('kCol').innerHTML = Math.round(kgMes).toLocaleString('pt-BR')+' <small>KG'+(cxMes?' + '+Math.round(cxMes)+' CX':'')+'</small>';
+  const tarMes = [...pulv,...nutr].filter(d=>d.status==='feito' && isoD(d.dataExecucao).slice(0,7)===mes).length;
+  document.getElementById('kTar').textContent = tarMes;
+  if(window.Chart){
+    Chart.defaults.color = '#9DB8A4'; Chart.defaults.borderColor = '#24402F';
+    const ms = mesesAtras(6), lbl = ms.map(nomeMes);
+    const vRs = ms.map(m=>Math.round(vendas.filter(v=>String(v.status)==='recebido' && isoD(v.data).slice(0,7)===m).reduce((a,v)=>a+num(v.total),0)*100)/100);
+    new Chart(document.getElementById('chVendas'), {type:'bar',
+      data:{labels:lbl, datasets:[{data:vRs, backgroundColor:'#3D7A5C', borderRadius:6}]},
+      options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+    const cKg = ms.map(m=>{ let s=0;
+      colhs.forEach(h=>{ if(String(h.unidade).toUpperCase()!=='CX' && isoD(h.data).slice(0,7)===m) s+=num(h.quantidade); });
+      return Math.round(s); });
+    new Chart(document.getElementById('chCol'), {type:'bar',
+      data:{labels:lbl, datasets:[{data:cKg, backgroundColor:'#D9A441', borderRadius:6}]},
+      options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}});
+  }
+  const porComp = {};
+  vendas.forEach(v=>{ if(String(v.status)!=='recebido') return;
+    const c = v.comprador||'—'; porComp[c]=(porComp[c]||0)+num(v.total); });
+  const rc = Object.entries(porComp).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('rkComp').innerHTML = rc.length
+    ? rc.map(([c,t])=>'<div class="rank"><span>'+c+'</span><b>'+BRL(t)+'</b></div>').join('')
+    : '<div class="empty">Sem vendas recebidas.</div>';
+  const cicloCult = {}; ciclos.forEach(c=>cicloCult[c.id]=c.cultura||'—');
+  const porCult = {};
+  colhs.forEach(h=>{ if(String(h.unidade).toUpperCase()==='CX') return;
+    const c = cicloCult[h.cicloId]||'—'; porCult[c]=(porCult[c]||0)+num(h.quantidade); });
+  const rk = Object.entries(porCult).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('rkCult').innerHTML = rk.length
+    ? rk.map(([c,t])=>'<div class="rank"><span>'+c+'</span><b>'+Math.round(t).toLocaleString('pt-BR')+' KG</b></div>').join('')
+    : '<div class="empty">Sem colheitas.</div>';
+}
+carregar();
+</script>
+<script src="sidebar.js"></script>
+</body>
+</html>
