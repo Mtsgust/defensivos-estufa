@@ -43,7 +43,7 @@
     return h + '<a href="' + it[0] + '"' + (it[2] === page ? ' class="active"' : '') +
       '><svg ' + S + '>' + it[3] + '</svg>' + it[1] + '</a>';
   }).join('');
-  var brand = '<div class="sb-brand"><div class="sb-logo">E</div>' +
+  var brand = '<div class="sb-brand"><div class="sb-logo"><img src="logo.png" alt="Estufas" style="width:100%;height:100%;object-fit:cover;border-radius:10px"></div>' +
     '<div><b>Estufas</b><small>Controle · Capão Bonito SP</small></div></div>';
   var aside = document.createElement('aside');
   aside.className = 'sb-aside';
