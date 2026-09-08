@@ -322,24 +322,15 @@ function render(){
     const ref = comprado > 0 ? comprado : (num(p.estoqueMinimo) > 0 ? num(p.estoqueMinimo)*2 : 0);
     const pct = ref > 0 ? Math.max(0, Math.min(100, num(p.estoqueAtual)/ref*100)) : (st.k==='ok'?100:0);
     const barCls = st.k==='zero' ? 'danger' : (st.k==='low' ? 'warn' : 'ok');
-    const inicial = escapeHtml(String(p.nome||'?').trim().charAt(0).toUpperCase());
-    const tile = p.foto
-      ? `<div class="ptile"><img src="${escapeHtml(p.foto)}" alt="" loading="lazy" onerror="this.remove()"></div>`
-      : `<div class="ptile">${inicial}</div>`;
+    const qtyCls = st.k==='ok' ? '' : (st.k==='low' ? 'warn' : 'danger');
     return `
     <div class="item ${cls}">
       <div class="item-top">
         <span class="cat">${escapeHtml(p.categoria||'Outro')}</span>
         <span class="alert ${st.k}">${st.label}</span>
       </div>
-      <div class="prow" style="margin-top:8px">
-        ${tile}
-        <div style="flex:1; min-width:0">
-          <h3 style="margin:0">${escapeHtml(p.nome)}</h3>
-          <div class="saldo">${saldoTxt}</div>
-        </div>
-      </div>
-      <div class="qbar ${barCls}"><i style="width:${pct}%"></i></div>
+      <div class="estock-top"><b>${escapeHtml(p.nome)}</b><span class="estock-qty ${qtyCls}">${fmt(num(p.estoqueAtual))} ${escapeHtml(p.unidade||'')}</span></div>
+      <div class="qbar big ${barCls}"><i style="width:${pct}%"></i></div>
       <span class="qbar-lbl">${st.k==='ok' ? Math.round(pct)+'% do total comprado' : (st.k==='low' ? 'Acabando — abaixo do mínimo' : 'Zerado — precisa comprar')}</span>
       <div class="meta">${dispTxt}Mínimo: ${fmt(num(p.estoqueMinimo))} ${escapeHtml(p.unidade||'')} ${p.fornecedor?' · '+escapeHtml(p.fornecedor):''}</div>
       <div class="actions">

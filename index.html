@@ -45,8 +45,14 @@
   .card{background:linear-gradient(180deg,var(--card2),var(--card)); border:1px solid var(--line); border-radius:22px; padding:20px;
     box-shadow:0 10px 30px rgba(0,0,0,.35); transition:transform .18s ease, box-shadow .18s ease;}
   .card:hover{transform:translateY(-2px); box-shadow:0 14px 34px rgba(0,0,0,.45);}
-  .stat .lbl{font-size:12px; color:var(--mut); display:flex; align-items:center; gap:7px;}
+  .stat .lbl{font-size:12px; color:var(--mut); display:flex; align-items:center; gap:7px; font-weight:600;}
+  .stat .lbl svg{width:15px; height:15px; flex:0 0 15px;}
   .stat .dot{width:9px; height:9px; border-radius:50%; background:var(--lime);}
+  .stat.hero{background:linear-gradient(135deg,#8ff0b3,#2fa36b) !important; border:none !important;}
+  .stat.hero .lbl, .stat.hero .sub{color:#0c2b1a !important;}
+  .stat.hero .num{color:#081f12 !important;}
+  .stat.hero .num small{color:#0c2b1a !important;}
+  .stat.hero a.link{color:#081f12 !important; font-weight:700;}
   .stat .num{font-size:34px; font-weight:800; margin:8px 0 2px;}
   .stat .num small{font-size:14px; font-weight:500; color:var(--mut);}
   .stat .sub{font-size:12px; color:var(--mut);}
@@ -66,7 +72,8 @@
   .empty{color:var(--dim); font-size:13px; padding:14px 0; text-align:center;}
 
   /* Clima */
-  .wx-now{display:flex; align-items:baseline; gap:10px; margin:6px 0;}
+  .wx-now{display:flex; align-items:center; gap:10px; margin:6px 0;}
+  .wx-now .ic{font-size:46px;}
   .wx-now .t{font-size:44px; font-weight:800;}
   .wx-now .c{color:var(--mut); font-size:13px;}
   .wx-row{display:flex; gap:14px; font-size:12.5px; color:var(--mut); flex-wrap:wrap; margin-bottom:10px;}
@@ -154,32 +161,32 @@
     <!-- ===== BLOCO: Cards de resumo ===== -->
     <div class="grid stats">
       <div class="card stat" id="cPulv">
-        <div class="lbl"><span class="dot"></span>Pulverizações pendentes</div>
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/></svg>Pulverizações pendentes</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="pulverizacoes.html">Abrir pulverizações →</a>
       </div>
       <div class="card stat" id="cNutr">
-        <div class="lbl"><span class="dot"></span>Nutrições pendentes</div>
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c-5 0-8-3-8-8 0-6 5-9 14-10-.5 9-2 18-6 18z"/></svg>Nutrições pendentes</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="nutricao.html">Abrir nutrição →</a>
       </div>
       <div class="card stat" id="cEst">
-        <div class="lbl"><span class="dot"></span>Estoque baixo / zerado</div>
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Estoque baixo / zerado</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="estoque.html">Abrir estoque →</a>
       </div>
       <div class="card stat" id="cProd">
-        <div class="lbl"><span class="dot"></span>Produtos no estoque</div>
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Produtos no estoque</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="estoque.html">Ver produtos →</a>
       </div>
-      <div class="card stat" id="cAtivas">
-        <div class="lbl"><span class="dot"></span>Estufas ativas</div>
+      <div class="card stat hero" id="cAtivas">
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M6 21v-9M12 21V5M18 21v-12"/></svg>Estufas ativas</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="colheita.html">Ver colheita →</a>
       </div>
       <div class="card stat" id="cSemana">
-        <div class="lbl"><span class="dot"></span>Pulverizações da semana</div>
+        <div class="lbl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Pulverizações da semana</div>
         <div class="num">—</div><div class="sub"></div>
         <a class="link" href="pulverizacoes.html">Ver agenda →</a>
       </div>
@@ -488,6 +495,9 @@ function initStack(stackId, dotsId, key, ms){
 const WX_TXT = {0:'Limpo',1:'Quase limpo',2:'Parcial nublado',3:'Nublado',45:'Nevoeiro',48:'Nevoeiro',
   51:'Garoa leve',53:'Garoa',55:'Garoa forte',61:'Chuva fraca',63:'Chuva',65:'Chuva forte',
   80:'Pancadas leves',81:'Pancadas',82:'Pancadas fortes',95:'Tempestade'};
+const WX_ICON = c => [95].includes(c) ? '⛈️' : [80,81,82,61,63,65].includes(c) ? '🌧️'
+  : [51,53,55].includes(c) ? '🌦️' : [45,48].includes(c) ? '🌫️'
+  : [3].includes(c) ? '☁️' : [2].includes(c) ? '⛅' : '☀️';
 async function carregarClima(){
   const box = document.getElementById('wx');
   try{
@@ -498,7 +508,7 @@ async function carregarClima(){
     const j = await (await fetch(u)).json();
     const c = j.current, dias = ['dom','seg','ter','qua','qui','sex','sáb'];
     box.innerHTML = `
-      <div class="wx-now"><span class="t">${Math.round(c.temperature_2m)}°</span>
+      <div class="wx-now"><span class="ic">${WX_ICON(c.weather_code)}</span><span class="t">${Math.round(c.temperature_2m)}°</span>
         <span class="c">${WX_TXT[c.weather_code]||''}<br>Capão Bonito SP</span></div>
       <div class="wx-row"><span>Umidade <b>${c.relative_humidity_2m}%</b></span>
         <span>Vento <b>${Math.round(c.wind_speed_10m)} km/h</b></span>
