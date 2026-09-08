@@ -94,6 +94,7 @@
 <main id="list"><div class="loading">Carregando…</div></main>
 
 <button class="fab" onclick="openProduto()">+ Novo produto</button>
+<button class="fab2" onclick="auditar()">Auditar saldos negativos</button>
 
 <!-- Cadastro / edição de produto -->
 <dialog id="dlgProduto">
@@ -143,6 +144,18 @@
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="document.getElementById('dlgMov').close()">Cancelar</button>
       <button class="btn-save" onclick="salvarMov()">Confirmar</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Auditoria -->
+<dialog id="dlgAudit">
+  <div class="sheet">
+    <h2>Saldos negativos</h2>
+    <p class="sub">Produtos com saldo abaixo de zero + últimas movimentações (para achar baixas erradas).</p>
+    <div id="auditList"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgAudit').close()">Fechar</button>
     </div>
   </div>
 </dialog>
@@ -215,6 +228,27 @@ async function apiGet(tipo){
 async function apiPost(body){
   const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)});
   return r.json();
+}
+
+// Lista produtos com saldo negativo + últimas movimentações (acha baixa com unidade errada).
+async function auditar(){
+  const box = document.getElementById('auditList');
+  box.innerHTML = '<div class="loading">Verificando…</div>';
+  document.getElementById('dlgAudit').showModal();
+  try{
+    const j = await apiPost({action:'auditarEstoque'});
+    const ps = (j && j.problemas) || [];
+    if(!ps.length){ box.innerHTML = '<div class="empty">Nenhum saldo negativo. Tudo certo!</div>'; return; }
+    box.innerHTML = ps.map(p=>{
+      const ult = (p.ultimas||[]).map(m=>
+        '<small>'+String(m.data||'').slice(0,10)+' · '+(m.tipo==='entrada'?'+':'−')+m.qtd+' '+(m.un||'')+' · '+escapeHtml(m.origem||'')+(m.obs?' · '+escapeHtml(m.obs):'')+'</small>'
+      ).join('');
+      return '<div class="mov"><div><b>'+escapeHtml(p.nome)+'</b>'+ult+'</div>' +
+        '<div class="q-out">'+p.saldo+' '+(p.unidade||'')+'</div></div>';
+    }).join('');
+  }catch(e){
+    box.innerHTML = '<div class="loading">Erro. Publique o Code.gs novo (Nova versão).</div>';
+  }
 }
 
 async function carregar(){

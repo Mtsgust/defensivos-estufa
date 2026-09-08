@@ -300,18 +300,12 @@ function emColheita(c){
 }
 
 // ===== ABA GERAL (só leitura, estilo Excel: semanas x estufas) =====
-function baseSemana(c, lancs){
-  if(isoData(c.dataInicio)) return isoData(c.dataInicio);
-  if(lancs.length){
-    const ds = lancs.map(h=>isoData(h.data||h.dataCriacao)).filter(Boolean).sort();
-    if(ds.length) return ds[0];
-  }
-  return '';
-}
-function numSemana(baseISO, dataISO){
-  if(!baseISO || !dataISO) return 1;
-  const n = Math.floor((new Date(dataISO+'T00:00:00') - new Date(baseISO+'T00:00:00'))/86400000/7)+1;
-  return n < 1 ? 1 : n;
+// Agrupa por semana de CALENDÁRIO (segunda-feira), mais nova em cima.
+// Assim todas as estufas se alinham pela data e o lançamento novo sempre cai no topo.
+function segDe(dtISO){
+  const d = new Date(dtISO+'T00:00:00');
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function somaDiasISO(iso, dias){
   const d = new Date(iso+'T00:00:00');
@@ -330,23 +324,21 @@ function renderGeral(list){
   if(filtroEstufa !== 'todas') estufas = [filtroEstufa];
   const cols = estufas.map(e=>{
     const c = ativoDaEstufa(e);
-    if(!c) return {e, c:null, sems:{}, max:0, base:'', tot:{kg:0,cx:0}};
+    if(!c) return {e, c:null, sems:{}, base:'', tot:{kg:0,cx:0}};
     const lancs = colhs.filter(h=>h.cicloId===c.id || (!h.cicloId && String(h.estufa)===String(e)));
-    const base = baseSemana(c, lancs);
     const sems = {}, tot = {kg:0, cx:0};
-    let max = 0;
     lancs.forEach(h=>{
       const dt = isoData(h.data||h.dataCriacao);
-      const n = numSemana(base, dt);
-      if(n > max) max = n;
-      sems[n] = sems[n] || {kg:0, cx:0, last:''};
-      if(String(h.unidade).toUpperCase()==='CX'){ sems[n].cx += num(h.quantidade); tot.cx += num(h.quantidade); }
-      else{ sems[n].kg += num(h.quantidade); tot.kg += num(h.quantidade); }
-      if(dt && dt > (sems[n].last||'')) sems[n].last = dt;
+      if(!dt) return;
+      const seg = segDe(dt);
+      sems[seg] = sems[seg] || {kg:0, cx:0, last:''};
+      if(String(h.unidade).toUpperCase()==='CX'){ sems[seg].cx += num(h.quantidade); tot.cx += num(h.quantidade); }
+      else{ sems[seg].kg += num(h.quantidade); tot.kg += num(h.quantidade); }
+      if(dt > (sems[seg].last||'')) sems[seg].last = dt;
     });
-    return {e, c, sems, max, base, tot};
+    return {e, c, sems, tot, base: isoData(c.dataInicio)};
   });
-  const maxGeral = Math.max(0, ...cols.map(k=>k.max));
+  const segs = [...new Set(cols.flatMap(k=>Object.keys(k.sems)))].sort().reverse();
   if(!cols.some(k=>k.c)){ list.innerHTML = '<div class="empty">Sem ciclo ativo. Vá em Safra ativa para iniciar.</div>'; return; }
   const cell = v => {
     if(!v || (v.kg<=0 && v.cx<=0)) return '<div class="mx-cell vazia">—</div>';
@@ -360,9 +352,9 @@ function renderGeral(list){
     k.c ? `<div class="mx-cell head">Estufa ${k.e}<small>${k.tot.kg>0?fmt(k.tot.kg)+' KG':''}${k.tot.kg>0&&k.tot.cx>0?' · ':''}${k.tot.cx>0?fmt(k.tot.cx)+' CX':''}${k.c.variedade?'<br>'+escapeHtml(k.c.variedade):''}${isoData(k.c.dataPlantio)?'<br>plantio '+fmtCurta(k.c.dataPlantio):''}${k.base?'<br>ini '+fmtCurta(k.base):''}</small></div>`
         : `<div class="mx-cell head">Estufa ${k.e}</div>`
   ).join('') + '</div>';
-  for(let s=maxGeral; s>=1; s--){
-    html += `<div class="mx-row"><div class="mx-lab">S${s}</div>` +
-      cols.map(k=>cell(k.sems[s])).join('') + '</div>';
+  for(const seg of segs){
+    html += `<div class="mx-row"><div class="mx-lab">${fmtCurta(seg)}</div>` +
+      cols.map(k=>cell(k.sems[seg])).join('') + '</div>';
   }
   html += '</div></div>';
   list.innerHTML = html;

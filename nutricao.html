@@ -208,11 +208,13 @@ async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId,
   try {
     const qtd = parseFloat(String(quantidade).replace(',', '.'));
     if (!produtoNome || !qtd || qtd <= 0) return;
-    await fetch(API_URL, { method: 'POST', body: JSON.stringify({
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({
       action: 'movimentar',
       data: { produtoNome, tipo: 'saida', quantidade: qtd, unidade: unidade || '',
               origem: origem || 'manual', origemId: origemId || '', obs: obs || '' }
     })});
+    const j = await r.json().catch(()=>null);
+    if (j && j.aviso) alert('Atenção no estoque (' + produtoNome + '): ' + j.aviso);
   } catch(e) { console.warn('Falha ao dar baixa no estoque:', produtoNome, e); }
 }
 

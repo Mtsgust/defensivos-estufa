@@ -29,6 +29,7 @@
     font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:12px; font-weight:600;
     background:var(--leaf); color:#fff; padding:3px 9px; border-radius:6px; white-space:nowrap;
   }
+  .badge.water{background:#1E3A5C; margin-left:6px;}
   .status{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:600; text-transform:uppercase; letter-spacing:.03em;}
   .status.pendente{background:#FBEBD3; color:var(--pend);}
   .status.feito{background:#DCEFE3; color:var(--feito);}
@@ -180,11 +181,13 @@ async function baixarEstoque(produtoNome, quantidade, unidade, origem, origemId,
   try {
     const qtd = parseFloat(String(quantidade).replace(',', '.'));
     if (!produtoNome || !qtd || qtd <= 0) return;
-    await fetch(API_URL, { method: 'POST', body: JSON.stringify({
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify({
       action: 'movimentar',
       data: { produtoNome, tipo: 'saida', quantidade: qtd, unidade: unidade || '',
               origem: origem || 'manual', origemId: origemId || '', obs: obs || '' }
     })});
+    const j = await r.json().catch(()=>null);
+    if (j && j.aviso) alert('Atenção no estoque (' + produtoNome + '): ' + j.aviso);
   } catch(e) { console.warn('Falha ao dar baixa no estoque:', produtoNome, e); }
 }
 
@@ -261,7 +264,7 @@ function itemCard(d){
   return `
     <div class="item">
       <div class="item-top">
-        <span class="badge">${badgeTxt}</span>
+        <div><span class="badge">${badgeTxt}</span>${d.litrosAgua ? `<span class="badge water">💧 ${escapeHtml(d.litrosAgua)} L</span>` : ''}</div>
         <span class="status ${statusClass}">${statusLabel}</span>
       </div>
       <h3>${tituloProdutos}</h3>
