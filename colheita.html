@@ -109,7 +109,6 @@
 
 <main id="list"><div class="loading">Carregando…</div></main>
 
-<button class="fab3" onclick="openImp()">⇅ Importar do Excel / backup</button>
 <button class="fab2" onclick="openColheita()">+ Lançar colheita</button>
 <button class="fab" onclick="openCiclo()">+ Novo ciclo (plantio)</button>
 
@@ -361,7 +360,7 @@ function renderGeral(list){
     k.c ? `<div class="mx-cell head">Estufa ${k.e}<small>${k.tot.kg>0?fmt(k.tot.kg)+' KG':''}${k.tot.kg>0&&k.tot.cx>0?' · ':''}${k.tot.cx>0?fmt(k.tot.cx)+' CX':''}${k.c.variedade?'<br>'+escapeHtml(k.c.variedade):''}${isoData(k.c.dataPlantio)?'<br>plantio '+fmtCurta(k.c.dataPlantio):''}${k.base?'<br>ini '+fmtCurta(k.base):''}</small></div>`
         : `<div class="mx-cell head">Estufa ${k.e}</div>`
   ).join('') + '</div>';
-  for(let s=1; s<=maxGeral; s++){
+  for(let s=maxGeral; s>=1; s--){
     html += `<div class="mx-row"><div class="mx-lab">S${s}</div>` +
       cols.map(k=>cell(k.sems[s])).join('') + '</div>';
   }
