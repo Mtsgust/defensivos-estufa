@@ -121,7 +121,9 @@
       <div class="field"><label>Estoque mínimo (alerta)</label><input id="pMinimo" type="number" step="any" inputmode="decimal" value="0"></div>
     </div>
     <div class="field"><label>Fornecedor</label><input id="pFornecedor" type="text" placeholder="opcional"></div>
-    <div class="field"><label>Foto (link da imagem, opcional)</label><input id="pFoto" type="url" inputmode="url" placeholder="https://..."></div>
+    <div class="field"><label>Foto (link ou arquivo do celular)</label><input id="pFoto" type="text" inputmode="url" placeholder="https://... ou escolha abaixo"></div>
+    <div class="field"><input id="pFotoFile" type="file" accept="image/*" style="padding:8px">
+      <div id="pFotoPrev"></div></div>
     <div class="field"><label>Observação</label><textarea id="pObs" rows="2"></textarea></div>
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="document.getElementById('dlgProduto').close()">Cancelar</button>
@@ -221,6 +223,32 @@ function movsDoProduto(p){
 }
 function totalComprado(p){
   return movsDoProduto(p).reduce((s,m)=> s + (m.tipo==='entrada'?num(m.quantidade):0), 0);
+}
+
+// Foto por arquivo: comprime para miniatura (96px) e salva junto (sem link).
+function fotoArquivoParaMini(fileInput, urlInputId, prevId){
+  const f = fileInput.files && fileInput.files[0]; if(!f) return;
+  const img = new Image();
+  img.onload = ()=>{
+    const S = 96, cv = document.createElement('canvas');
+    cv.width = S; cv.height = S;
+    const cx = cv.getContext('2d');
+    const sc = Math.max(S/img.width, S/img.height), w = img.width*sc, h = img.height*sc;
+    cx.drawImage(img, (S-w)/2, (S-h)/2, w, h);
+    const url = cv.toDataURL('image/jpeg', .72);
+    document.getElementById(urlInputId).value = url;
+    document.getElementById(prevId).innerHTML = '<img src="'+url+'" style="width:52px;height:52px;border-radius:12px;object-fit:cover;margin-top:6px">';
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(f);
+}
+document.getElementById('pFotoFile').addEventListener('change', function(){
+  fotoArquivoParaMini(this, 'pFoto', 'pFotoPrev');
+});
+function mostraPrevFoto(url){
+  document.getElementById('pFotoPrev').innerHTML = url
+    ? '<img src="'+escapeHtml(url)+'" style="width:52px;height:52px;border-radius:12px;object-fit:cover;margin-top:6px" onerror="this.remove()">'
+    : '';
 }
 
 async function apiGet(tipo){
@@ -343,6 +371,8 @@ function openProduto(){
   document.getElementById('pMinimo').value='0';
   document.getElementById('pFornecedor').value='';
   document.getElementById('pFoto').value='';
+  document.getElementById('pFotoFile').value='';
+  mostraPrevFoto('');
   document.getElementById('pObs').value='';
   document.getElementById('dlgProduto').showModal();
 }
@@ -357,6 +387,8 @@ function editarProduto(id){
   document.getElementById('pMinimo').value=p.estoqueMinimo||0;
   document.getElementById('pFornecedor').value=p.fornecedor||'';
   document.getElementById('pFoto').value=p.foto||'';
+  document.getElementById('pFotoFile').value='';
+  mostraPrevFoto(p.foto||'');
   document.getElementById('pObs').value=p.obs||'';
   document.getElementById('btnExcluirProd').style.display='block';
   document.getElementById('dlgProduto').showModal();

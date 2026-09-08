@@ -18,6 +18,7 @@
 .sb-nav a.active{background:linear-gradient(135deg,#2c5a3f,#1A3327); color:#fff; box-shadow:inset 2px 0 0 #8FD19A, 0 6px 16px rgba(0,0,0,.3);}
 .sb-foot{margin-top:auto; font-size:11px; color:#6E8A75; padding:8px 12px;}
 .sb-burger{display:none;}
+.sb-topbar{display:none;}
 .sb-overlay{display:none;}
 body.has-sidebar{margin-left:224px;}
 

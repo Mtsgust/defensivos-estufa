@@ -130,3 +130,23 @@ body.tdark .chip.active{background:linear-gradient(135deg,#3D7A5C,#2A5A41) !impo
 @media (max-width:860px){
   body.tdark .item, body.tdark .card{border-radius:20px !important;}
 }
+
+/* Pulverizações: lista de produtos do card */
+body.tdark .prod-list li{border-color:#24402F !important;}
+body.tdark .prod-list .p-nome{color:#E9F2EA !important;}
+body.tdark .prod-list .p-dose{color:#9DB8A4 !important;}
+body.tdark .prod-list .p-total{color:#8FD19A !important;}
+body.tdark .item p{color:#c6d4c9;}
+
+/* Bulário: catálogo no tema escuro */
+body.tdark .prod{background:linear-gradient(180deg,#162C20,#132619) !important;
+  border:1px solid #24402F !important; border-radius:22px !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.35) !important; animation:rise .4s ease both;}
+body.tdark .prod-head{gap:12px;}
+body.tdark .prod-head .name{color:#E9F2EA !important;}
+body.tdark .prod-body{border-color:#24402F !important;}
+body.tdark .cat.fung{background:rgba(143,209,154,.14) !important; color:#8FD19A !important;}
+body.tdark .cat.inset{background:rgba(217,164,65,.15) !important; color:#E8C86A !important;}
+body.tdark .prod-save{background:linear-gradient(135deg,#46a06f,#2A5A41) !important;}
+body.tdark .fill-btn{color:#8FD19A !important; border-color:#3D7A5C !important;}
+body.tdark .fill-status{color:#9DB8A4 !important;}
