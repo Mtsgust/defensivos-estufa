@@ -20,6 +20,8 @@
 .sb-burger{display:none;}
 .sb-topbar{display:none;}
 .sb-overlay{display:none;}
+.sb-fab{display:none;}
+.sb-close{display:none;}
 body.has-sidebar{margin-left:224px;}
 
 @media (min-width:861px){
@@ -28,19 +30,22 @@ body.has-sidebar{margin-left:224px;}
 }
 
 @media (max-width:860px){
-  body.has-sidebar{margin-left:0; padding-top:64px;}
-  .sb-topbar{position:fixed; top:0; left:0; right:0; height:64px; z-index:70;
-    display:flex; align-items:center; gap:10px; padding:0 14px;
-    background:rgba(13,27,19,.92); backdrop-filter:blur(8px); border-bottom:1px solid #24402F;}
-  .sb-burger{display:flex; align-items:center; justify-content:center; width:42px; height:42px;
-    border-radius:12px; border:1px solid #24402F; background:#152A1F; color:#E9F2EA;
-    font-size:20px; cursor:pointer;}
-  .sb-topbar .sb-brand{padding:0;}
-  .sb-topbar .sb-brand small{display:none;}
-  .sb-aside{transform:translateX(-105%); transition:transform .28s ease; width:250px;
-    box-shadow:24px 0 60px rgba(0,0,0,.5);}
+  /* Sem barra fixa no topo (bate no notch). Botão flutuante + menu lateral. */
+  body.has-sidebar{margin-left:0; padding-top:env(safe-area-inset-top, 0px);}
+  .sb-topbar{display:none !important;}
+  .sb-fab{display:flex; align-items:center; justify-content:center;
+    position:fixed; top:calc(env(safe-area-inset-top, 0px) + 12px); left:12px; z-index:80;
+    width:48px; height:48px; border-radius:15px; border:1px solid #24402F;
+    background:rgba(21,42,31,.94); color:#E9F2EA; font-size:21px; cursor:pointer;
+    box-shadow:0 8px 22px rgba(0,0,0,.45);}
+  .sb-aside{transform:translateX(-105%); transition:transform .28s ease; width:min(270px, 82vw);
+    box-shadow:24px 0 60px rgba(0,0,0,.5); padding-top:calc(env(safe-area-inset-top, 0px) + 20px);}
   body.sb-open .sb-aside{transform:none;}
   body.sb-open .sb-overlay{display:block; position:fixed; inset:0; z-index:55; background:rgba(0,0,0,.55);}
   body.sb-open{overflow:hidden;}
-  body.has-sidebar header{top:64px;}
+  .sb-close{display:flex; align-items:center; justify-content:center; position:absolute;
+    top:calc(env(safe-area-inset-top, 0px) + 14px); right:12px; width:36px; height:36px;
+    border-radius:10px; border:1px solid #24402F; background:#152A1F; color:#9DB8A4;
+    font-size:15px; cursor:pointer;}
+  body.has-sidebar header{top:0;}
 }

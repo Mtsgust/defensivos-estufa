@@ -47,19 +47,22 @@
     '<div><b>Estufas</b><small>Controle · Capão Bonito SP</small></div></div>';
   var aside = document.createElement('aside');
   aside.className = 'sb-aside';
-  aside.innerHTML = brand + '<nav class="sb-nav">' + nav + '</nav>' +
+  aside.innerHTML = '<button class="sb-close" aria-label="Fechar menu">✕</button>' +
+    brand + '<nav class="sb-nav">' + nav + '</nav>' +
     '<div class="sb-foot">v2 · tema premium</div>';
-  var topbar = document.createElement('div');
-  topbar.className = 'sb-topbar';
-  topbar.innerHTML = '<button class="sb-burger" aria-label="Abrir menu">☰</button>' + brand;
+  var fab = document.createElement('button');
+  fab.className = 'sb-fab';
+  fab.setAttribute('aria-label', 'Abrir menu');
+  fab.textContent = '☰';
   var overlay = document.createElement('div');
   overlay.className = 'sb-overlay';
   document.body.classList.add('has-sidebar');
   document.body.insertBefore(overlay, document.body.firstChild);
-  document.body.insertBefore(topbar, document.body.firstChild);
+  document.body.insertBefore(fab, document.body.firstChild);
   document.body.insertBefore(aside, document.body.firstChild);
-  topbar.querySelector('.sb-burger').onclick = function(){ document.body.classList.toggle('sb-open'); };
+  fab.onclick = function(){ document.body.classList.toggle('sb-open'); };
   overlay.onclick = function(){ document.body.classList.remove('sb-open'); };
+  aside.querySelector('.sb-close').onclick = function(){ document.body.classList.remove('sb-open'); };
   aside.querySelectorAll('a').forEach(function(a){
     a.addEventListener('click', function(){ document.body.classList.remove('sb-open'); });
   });

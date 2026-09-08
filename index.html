@@ -128,7 +128,7 @@
   @media (max-width:860px){
     .app{flex-direction:column;}
     aside{width:100%; flex:none; height:auto; position:static; flex-direction:row;
-      align-items:center; padding:10px; overflow-x:auto; gap:6px;}
+      align-items:center; padding:calc(env(safe-area-inset-top, 0px) + 10px) 10px 10px; overflow-x:auto; gap:6px;}
     .brand{padding:0 6px 0 0;} .brand small, aside .foot{display:none;}
     nav{display:flex; gap:6px;} nav a{white-space:nowrap; padding:9px 12px;}
     main{padding:18px 14px 90px;}
