@@ -206,6 +206,10 @@
     <h2 id="histTitle">Histórico</h2>
     <p class="sub" id="histSub"></p>
     <div id="histList"></div>
+    <div class="sheet-actions" style="align-items:center">
+      <input id="deslocDias" type="number" value="14" style="flex:0 0 70px; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:14px;">
+      <button class="btn-cancel" style="font-size:13px" onclick="deslocarDatas()">Deslocar datas (dias)</button>
+    </div>
     <div class="sheet-actions">
       <button class="btn-cancel" onclick="document.getElementById('dlgHist').close()">Fechar</button>
     </div>
@@ -530,8 +534,10 @@ async function salvarColheita(){
 }
 
 // ---- Histórico do ciclo ----
+let histCicloId = null;
 function openHist(id){
   const c = ciclos.find(x=>x.id===id); if(!c) return;
+  histCicloId = id;
   document.getElementById('histTitle').textContent = `Estufa ${c.estufa} — ${c.cultura||'Tomate'}`;
   const lista = colhs.filter(h=>h.cicloId===id || (!h.cicloId && String(h.estufa)===String(c.estufa)))
     .sort((a,b)=> new Date(b.data||b.dataCriacao) - new Date(a.data||a.dataCriacao));
@@ -551,6 +557,16 @@ async function excluirColheita(hid, cicloId){
   await apiPost({tipo:'colheitas', action:'delete', id:hid});
   carregar();
   document.getElementById('dlgHist').close();
+}
+// Desloca todas as datas do ciclo (série com início errado, ex: 400 KG era 28/08).
+async function deslocarDatas(){
+  const dias = parseInt(document.getElementById('deslocDias').value,10)||0;
+  if(!dias || !histCicloId) return;
+  if(!confirm(`Deslocar TODOS os lançamentos deste ciclo ${dias>0?'+':''}${dias} dias?`)) return;
+  const r = await apiPost({action:'deslocarDatas', cicloId:histCicloId, dias});
+  alert(r.ok ? `Pronto! ${r.movidos} lançamentos deslocados.` : ('Erro: '+(r.error||'falha')));
+  document.getElementById('dlgHist').close();
+  carregar();
 }
 
 // ===== IMPORTAR DO EXCEL (colar a aba SAFRA ATIVA) =====
