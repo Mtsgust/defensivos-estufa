@@ -1,0 +1,408 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Vendas</title>
+<style>
+  :root{
+    --bg:#F2F5EF; --ink:#1D2B22; --leaf:#234D35; --leaf-dark:#173425;
+    --paper:#FFFFFF; --line:#DCE3D8; --pend:#C68A2E; --feito:#3D7A5C; --danger:#B5432F;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; padding-bottom:100px;}
+  header{background:var(--leaf-dark); color:#fff; padding:16px 20px 20px; position:sticky; top:0; z-index:5;}
+  header a{color:#CFE0D3; text-decoration:none; font-size:13px;}
+  header h1{margin:6px 0 0; font-size:20px;}
+  header p{margin:4px 0 0; font-size:12.5px; color:#CFE0D3;}
+  .tabs{display:flex; gap:8px; margin:14px 20px 0;}
+  .tab{flex:1; text-align:center; padding:9px 0; border-radius:9px; font-size:13px; background:var(--paper); border:1px solid var(--line); cursor:pointer; color:var(--ink);}
+  .tab.active{background:var(--leaf); color:#fff; border-color:var(--leaf);}
+  .filters{margin:10px 20px 0; display:flex; gap:8px;}
+  .filters input{flex:1; padding:10px 12px; border-radius:9px; border:none; font-size:14px; background:rgba(255,255,255,.12); color:#fff;}
+  .filters input::placeholder{color:#CFE0D3;}
+  main{padding:16px 20px;}
+  .res{display:flex; gap:8px; margin-bottom:12px;}
+  .ritem{flex:1; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 6px; text-align:center;}
+  .ritem span{font-size:11px; color:#8A968A; display:block;}
+  .ritem b{font-size:15px;}
+  .ritem.ok b{color:var(--feito);} .ritem.no b{color:var(--danger);}
+  .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
+  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
+  .item.recebido{border-color:#9CCBAC; background:#FAFDFB;}
+  .item.pendente{border-color:#E08A7A; background:#FFF9F7;}
+  .item-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .cat{font-size:11px; padding:3px 9px; border-radius:20px; font-weight:600; background:#E4EFE6; color:var(--feito);}
+  .alert{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
+  .alert.ok{background:#DCEFE3; color:var(--feito);}
+  .alert.zero{background:#F7DAD2; color:var(--danger);}
+  .item h3{margin:8px 0 2px; font-size:15px; font-weight:600;}
+  .total{font-size:22px; font-weight:700; margin:4px 0 0;}
+  .total small{font-size:13px; font-weight:500; color:#54614F;}
+  .item.recebido .total{color:var(--feito);}
+  .item.pendente .total{color:var(--danger);}
+  .meta{font-size:12px; color:#8A968A; margin-top:4px;}
+  .actions{display:flex; gap:8px; margin-top:10px;}
+  .actions button{flex:1; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600; cursor:pointer;}
+  .btn-in{background:var(--feito); color:#fff; border:none;}
+  .btn-out{background:transparent; color:var(--pend); border:1px solid var(--pend) !important;}
+  .btn-edit{background:transparent; color:#8A968A; border:1px solid var(--line) !important; flex:0 0 44px !important;}
+  .fab{position:fixed; bottom:22px; right:20px; left:20px; max-width:420px; margin:0 auto; background:var(--leaf); color:#fff; border:none; border-radius:14px; padding:16px; font-size:16px; font-weight:600; box-shadow:0 4px 14px rgba(23,52,37,.35); cursor:pointer;}
+  dialog{border:none; border-radius:16px; width:min(92vw,420px); padding:0;}
+  dialog::backdrop{background:rgba(23,52,37,.45);}
+  .sheet{padding:20px; max-height:85vh; overflow-y:auto;}
+  .sheet h2{margin:0 0 4px; font-size:18px;}
+  .sheet .sub{font-size:12.5px; color:#8A968A; margin:0 0 14px;}
+  .field{margin-bottom:12px;}
+  .field label{display:block; font-size:12px; color:#54614F; margin-bottom:5px;}
+  .field input,.field select{width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:15px; background:#fff; font-family:inherit;}
+  .row2{display:flex; gap:10px;} .row2 .field{flex:1;}
+  .prev{background:#EDEFEA; border-radius:9px; padding:10px 12px; font-size:15px; font-weight:700; margin-bottom:12px;}
+  .prev small{font-weight:400; color:#54614F; font-size:12px; display:block;}
+  .sheet-actions{display:flex; gap:10px; margin-top:14px;}
+  .sheet-actions button{flex:1; padding:12px; border-radius:9px; border:none; font-size:15px; font-weight:600; cursor:pointer;}
+  .btn-cancel{background:#EDEFEA; color:var(--ink);}
+  .btn-save{background:var(--leaf); color:#fff;}
+  .prod-del{width:100%; padding:10px; border:1px solid var(--danger); border-radius:9px; background:transparent; color:var(--danger); font-size:13.5px; font-weight:600; margin-top:10px; cursor:pointer;}
+  .loading{text-align:center; color:#8A968A; font-size:13px; margin-top:20px;}
+  .imp-status{font-size:12.5px; color:#54614F; margin:4px 0 8px; white-space:pre-line;}
+  .imp-item{font-size:12.5px; padding:8px 0; border-bottom:1px dashed var(--line);}
+  .imp-item small{display:block; color:#8A968A;}
+</style>
+<link rel="stylesheet" href="sidebar.css">
+</head>
+<body data-page="vendas">
+<header>
+  <a href="index.html">‹ voltar</a>
+  <h1>Vendas</h1>
+  <p>Quem comprou, quantos KG/CX, preço e o que já entrou.</p>
+  <div class="tabs">
+    <div class="tab active" data-f="todas">Todas</div>
+    <div class="tab" data-f="recebido">Recebidas</div>
+    <div class="tab" data-f="pendente">A receber</div>
+  </div>
+  <div class="filters">
+    <input id="busca" type="text" placeholder="Buscar comprador ou cultura...">
+  </div>
+</header>
+
+<main>
+  <div class="res">
+    <div class="ritem ok"><span>Recebido</span><b id="tRec">—</b></div>
+    <div class="ritem no"><span>A receber</span><b id="tPen">—</b></div>
+    <div class="ritem"><span>Total geral</span><b id="tTot">—</b></div>
+  </div>
+  <div id="list"><div class="loading">Carregando…</div></div>
+</main>
+
+<button class="fab" onclick="openVenda()">+ Nova venda</button>
+<button class="fab2" style="position:fixed; bottom:78px; right:20px; left:20px; max-width:420px; margin:0 auto; background:transparent; color:var(--leaf); border:1px dashed var(--leaf); border-radius:14px; padding:11px; font-size:13px; font-weight:600; cursor:pointer;" onclick="openImp()">⇅ Importar do Excel</button>
+
+<!-- Importar do Excel -->
+<dialog id="dlgImp">
+  <div class="sheet">
+    <h2>Importar do Excel</h2>
+    <p class="sub">No Excel, selecione as linhas de venda, copie (Ctrl+C) e cole abaixo. Com preço = recebido, sem preço = a receber.</p>
+    <div class="field"><label>Colar aqui</label><textarea id="impTexto" rows="6" style="width:100%; padding:10px; border:1px solid var(--line); border-radius:9px; font-size:13px;" placeholder="Cole as linhas copiadas do Excel..."></textarea></div>
+    <div class="row2">
+      <div class="field"><label>Ano das datas</label><input id="impAno" type="number" value="2026"></div>
+      <div class="field"><label>Cultura</label>
+        <select id="impCultura"><option>Tomate</option><option>Pepino</option><option>Outra</option></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Unidade (nº sem KG/CX)</label>
+        <select id="impUn"><option value="KG">KG</option><option value="CX">CX</option></select>
+      </div>
+      <div class="field"><label>Comprador (linhas sem nome)</label><input id="impComp" type="text" placeholder="opcional"></div>
+    </div>
+    <div class="imp-status" id="impStatus"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgImp').close()">Fechar</button>
+      <button class="btn-save" onclick="processarImp()">Ler</button>
+    </div>
+    <div id="impPreview"></div>
+    <div class="sheet-actions" id="impSaveBar" style="display:none">
+      <button class="btn-cancel" onclick="document.getElementById('dlgImp').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarImportados()">Salvar tudo</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlgVenda">
+  <div class="sheet">
+    <h2 id="dlgVendaTitle">Nova venda</h2>
+    <p class="sub">Total = quantidade paga × preço.</p>
+    <div class="row2">
+      <div class="field"><label>Data</label><input id="vData" type="date"></div>
+      <div class="field"><label>Status</label>
+        <select id="vStatus"><option value="pendente">A receber</option><option value="recebido">Recebido</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Comprador</label><input id="vComprador" type="text" list="dlComp" placeholder="ex: GEAN">
+      <datalist id="dlComp"></datalist></div>
+    <div class="row2">
+      <div class="field"><label>Cultura</label>
+        <select id="vCultura"><option>Tomate</option><option>Pepino</option><option>Outra</option></select>
+      </div>
+      <div class="field"><label>Unidade</label>
+        <select id="vUn"><option value="KG">KG</option><option value="CX">CX</option></select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Quantidade</label><input id="vQtd" type="number" step="any" inputmode="decimal" placeholder="ex: 475"></div>
+      <div class="field"><label>Qtd. paga (opcional)</label><input id="vQtdPaga" type="number" step="any" inputmode="decimal" placeholder="= quantidade"></div>
+    </div>
+    <div class="field"><label>Preço unitário (R$)</label><input id="vPreco" type="number" step="any" inputmode="decimal" placeholder="ex: 5,50"></div>
+    <div class="prev"><small>Total da venda</small><span id="vTotalPrev">—</span></div>
+    <div class="field"><label>Observação</label><input id="vObs" type="text" placeholder="opcional"></div>
+    <div class="sheet-actions">
+      <button class="btn-cancel" onclick="document.getElementById('dlgVenda').close()">Cancelar</button>
+      <button class="btn-save" onclick="salvarVenda()">Salvar</button>
+    </div>
+    <button class="prod-del" id="btnExcluirVenda" style="display:none" onclick="excluirVenda()">Excluir venda</button>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script>
+let vendas = [];
+let filtro = 'todas';
+let editId = null;
+
+function num(v){ if(v===''||v==null) return 0; const n = parseFloat(String(v).replace(',','.')); return isNaN(n)?0:n; }
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function BRL(v){ return (Math.round(num(v)*100)/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+function fmtData(v){ if(!v) return '—'; const s = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(s) return s[3]+'/'+s[2]+'/'+s[1];
+  const d = new Date(v); return isNaN(d) ? v : d.toLocaleDateString('pt-BR'); }
+function hojeISO(){ const d = new Date(); return d.toISOString().slice(0,10); }
+function isoData(v){ if(!v) return ''; const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[1]+'-'+m[2]+'-'+m[3] : ''; }
+async function apiGet(tipo){ const r = await fetch(API_URL+'?tipo='+tipo); return r.json(); }
+async function apiPost(body){ const r = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)}); return r.json(); }
+
+async function carregar(){
+  document.getElementById('list').innerHTML = '<div class="loading">Carregando…</div>';
+  try{
+    const r = await apiGet('vendas');
+    vendas = r.data || [];
+    vendas.sort((a,b)=> String(b.data||'') < String(a.data||'') ? -1 : 1);
+    const comps = [...new Set(vendas.map(v=>v.comprador).filter(Boolean))].sort();
+    document.getElementById('dlComp').innerHTML = comps.map(c=>'<option value="'+esc(c)+'">').join('');
+    render();
+  }catch(e){
+    document.getElementById('list').innerHTML = '<div class="loading">Erro ao carregar. Confira config.js e se publicou o Code.gs novo.</div>';
+  }
+}
+function totais(){
+  let rec = 0, pen = 0;
+  vendas.forEach(v=>{ if(String(v.status)==='recebido') rec += num(v.total); else pen += num(v.total); });
+  document.getElementById('tRec').textContent = BRL(rec);
+  document.getElementById('tPen').textContent = BRL(pen);
+  document.getElementById('tTot').textContent = BRL(rec+pen);
+}
+function render(){
+  totais();
+  const q = document.getElementById('busca').value.trim().toLowerCase();
+  const list = vendas.filter(v=>{
+    if(filtro!=='todas' && String(v.status)!==filtro) return false;
+    if(q && !(String(v.comprador||'').toLowerCase().includes(q) || String(v.cultura||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  if(!list.length){ document.getElementById('list').innerHTML = '<div class="empty">Nenhuma venda.</div>'; return; }
+  document.getElementById('list').innerHTML = list.map(v=>{
+    const rec = String(v.status)==='recebido';
+    const qp = num(v.qtdPaga) > 0 ? num(v.qtdPaga) : num(v.quantidade);
+    const detalhe = num(v.qtdPaga) > 0
+      ? fmtQtd(v.quantidade, v.unidade)+' (pagos '+fmtQtd(v.qtdPaga, v.unidade)+') × '+BRL(v.preco)
+      : fmtQtd(v.quantidade, v.unidade)+' × '+BRL(v.preco);
+    return '<div class="item '+(rec?'recebido':'pendente')+'">' +
+      '<div class="item-top"><span class="cat">'+esc(v.comprador||'—')+'</span>' +
+      '<span class="alert '+(rec?'ok':'zero')+'">'+(rec?'Recebido':'A receber')+'</span></div>' +
+      '<h3>'+esc(detalhe)+'</h3>' +
+      '<div class="total">'+BRL(v.total)+'</div>' +
+      '<div class="meta">'+fmtData(v.data)+' · '+esc(v.cultura||'')+(v.obs?' · '+esc(v.obs):'')+'</div>' +
+      '<div class="actions">' +
+        (rec
+          ? '<button class="btn-out" onclick="alternarStatus(\''+v.id+'\')">Voltar p/ a receber</button>'
+          : '<button class="btn-in" onclick="alternarStatus(\''+v.id+'\')">Marcar recebido</button>') +
+        '<button class="btn-edit" onclick="openVenda(\''+v.id+'\')">✎</button>' +
+      '</div></div>';
+  }).join('');
+}
+function fmtQtd(q, u){ const n = Math.round(num(q)*100)/100; return n.toString().replace('.',',')+' '+(u||'KG'); }
+
+function openVenda(id){
+  editId = id || null;
+  const v = id ? vendas.find(x=>String(x.id)===String(id)) : null;
+  document.getElementById('dlgVendaTitle').textContent = v ? 'Editar venda' : 'Nova venda';
+  document.getElementById('vData').value = v ? isoData(v.data) : hojeISO();
+  document.getElementById('vStatus').value = v ? (v.status||'pendente') : 'pendente';
+  document.getElementById('vComprador').value = v ? (v.comprador||'') : '';
+  document.getElementById('vCultura').value = v ? (v.cultura||'Tomate') : 'Tomate';
+  document.getElementById('vUn').value = v ? (v.unidade||'KG') : 'KG';
+  document.getElementById('vQtd').value = v ? (v.quantidade||'') : '';
+  document.getElementById('vQtdPaga').value = v && num(v.qtdPaga) > 0 ? v.qtdPaga : '';
+  document.getElementById('vPreco').value = v && num(v.preco) > 0 ? v.preco : '';
+  document.getElementById('vObs').value = v ? (v.obs||'') : '';
+  document.getElementById('btnExcluirVenda').style.display = v ? 'block' : 'none';
+  calcPrev();
+  document.getElementById('dlgVenda').showModal();
+}
+function calcPrev(){
+  const qp = num(document.getElementById('vQtdPaga').value) > 0
+    ? num(document.getElementById('vQtdPaga').value) : num(document.getElementById('vQtd').value);
+  const p = num(document.getElementById('vPreco').value);
+  document.getElementById('vTotalPrev').textContent = (qp > 0 && p > 0) ? BRL(qp*p) : 'a definir';
+}
+['vQtd','vQtdPaga','vPreco'].forEach(id=>document.getElementById(id).addEventListener('input', calcPrev));
+async function salvarVenda(){
+  const comp = document.getElementById('vComprador').value.trim();
+  const qtd = num(document.getElementById('vQtd').value);
+  if(!comp){ alert('Informe o comprador.'); return; }
+  if(!(qtd > 0)){ alert('Informe a quantidade.'); return; }
+  const qp = num(document.getElementById('vQtdPaga').value) > 0 ? num(document.getElementById('vQtdPaga').value) : qtd;
+  const preco = num(document.getElementById('vPreco').value);
+  const data = {
+    data: document.getElementById('vData').value || hojeISO(),
+    status: document.getElementById('vStatus').value,
+    comprador: comp, cultura: document.getElementById('vCultura').value,
+    unidade: document.getElementById('vUn').value, quantidade: qtd, qtdPaga: qp,
+    preco: preco, total: Math.round(qp*preco*100)/100,
+    obs: document.getElementById('vObs').value.trim()
+  };
+  const r = editId
+    ? await apiPost({tipo:'vendas', action:'update', id:editId, data})
+    : await apiPost({tipo:'vendas', action:'add', data});
+  if(r.ok){ document.getElementById('dlgVenda').close(); carregar(); }
+  else alert('Erro: '+(r.error||'falha ao salvar'));
+}
+async function alternarStatus(id){
+  const v = vendas.find(x=>String(x.id)===String(id));
+  if(!v) return;
+  const novo = String(v.status)==='recebido' ? 'pendente' : 'recebido';
+  const r = await apiPost({tipo:'vendas', action:'update', id, data:{status:novo}});
+  if(r.ok) carregar(); else alert('Erro: '+(r.error||'falha'));
+}
+async function excluirVenda(){
+  if(!editId) return;
+  if(!confirm('Excluir esta venda?')) return;
+  const r = await apiPost({tipo:'vendas', action:'delete', id:editId});
+  if(r.ok){ document.getElementById('dlgVenda').close(); carregar(); }
+  else alert('Erro: '+(r.error||'falha'));
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); filtro = t.dataset.f; render();
+});
+document.getElementById('busca').addEventListener('input', render);
+
+// ---- Importar do Excel ----
+let impVendas = [];
+const MESES_V = {jan:'01',fev:'02',fev2:'02',mar:'03',abr:'04',mai:'05',jun:'06',jul:'07',ago:'08',set:'09',out:'10',nov:'11',dez:'12'};
+function parseNumBR(s){
+  s = String(s||'').replace(/R\$\s?/g,'').trim();
+  if(!s || s==='-') return 0;
+  s = s.replace(/[^\d.,-]/g,'');
+  if(!s) return 0;
+  if(s.includes(',')) s = s.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(s); return isNaN(n)?0:n;
+}
+function parseQtdV(cell, unPadrao){
+  const m = String(cell||'').match(/([\d.,]+)\s*(kg|cx)/i);
+  if(m) return {qtd:parseNumBR(m[1]), un:m[2].toUpperCase()==='CX'?'CX':'KG'};
+  const n = parseNumBR(cell);
+  return n > 0 ? {qtd:n, un:unPadrao} : null;
+}
+function parseDataV(cell, ano){
+  const c = String(cell||'').trim().toLowerCase();
+  let m = c.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if(m){ const a = m[3] ? (m[3].length===2?'20'+m[3]:m[3]) : ano;
+    return a+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'); }
+  m = c.match(/^(\d{1,2})\/([a-zç]{3})/);
+  if(m){ const mm = MESES_V[m[2].slice(0,3)]; if(!mm) return '';
+    return ano+'-'+mm+'-'+m[1].padStart(2,'0'); }
+  return '';
+}
+function chaveVenda(data, comp, qtd, preco){
+  return [isoData(data), String(comp||'').trim().toLowerCase(), Math.round(num(qtd)*100), Math.round(num(preco)*100)].join('|');
+}
+function parseVendasExcel(texto, ano, cultura, unPadrao, compPadrao){
+  const chaves = new Set(vendas.map(v=>chaveVenda(v.data, v.comprador, v.quantidade, v.preco)));
+  const out = [];
+  String(texto||'').split('\n').forEach(lin=>{
+    if(!lin.trim()) return;
+    const cells = lin.includes('\t') ? lin.split('\t') : lin.split(';');
+    let di = -1, data = '';
+    for(let i=0;i<cells.length;i++){ const d = parseDataV(cells[i], ano); if(d){ di = i; data = d; break; } }
+    if(!data) return;
+    const nome = di > 0 ? cells.slice(0,di).join(' ').trim() : (compPadrao||'');
+    const after = cells.slice(di+1);
+    const qtds = [];
+    after.forEach(c=>{ const q = parseQtdV(c, unPadrao); if(q) qtds.push(q); });
+    if(!qtds.length) return;
+    let preco = 0;
+    for(const c of after){ if(/R\$/.test(c)){ preco = parseNumBR(c); break; } }
+    const qtd = qtds[0];
+    const qp = qtds.length > 1 ? qtds[1].qtd : qtd.qtd;
+    const total = Math.round(qp*preco*100)/100;
+    const item = {data, comprador:nome, cultura, quantidade:qtd.qtd, unidade:qtd.un,
+      qtdPaga:qp, preco, total, status:preco>0?'recebido':'pendente', obs:'Importado do Excel'};
+    item.dupe = chaves.has(chaveVenda(data, nome, qtd.qtd, preco));
+    if(!item.dupe) chaves.add(chaveVenda(data, nome, qtd.qtd, preco));
+    out.push(item);
+  });
+  return out;
+}
+function openImp(){
+  document.getElementById('impTexto').value='';
+  document.getElementById('impStatus').textContent='';
+  document.getElementById('impPreview').innerHTML='';
+  document.getElementById('impSaveBar').style.display='none';
+  impVendas=[];
+  document.getElementById('dlgImp').showModal();
+}
+function processarImp(){
+  const ano = document.getElementById('impAno').value || new Date().getFullYear();
+  impVendas = parseVendasExcel(
+    document.getElementById('impTexto').value, String(ano),
+    document.getElementById('impCultura').value, document.getElementById('impUn').value,
+    document.getElementById('impComp').value.trim());
+  const st = document.getElementById('impStatus');
+  const novos = impVendas.filter(v=>!v.dupe);
+  if(!impVendas.length){ st.textContent = 'Nada reconhecido. Confira o que colou.'; return; }
+  const rec = novos.filter(v=>v.status==='recebido').reduce((a,v)=>a+v.total,0);
+  const pen = novos.filter(v=>v.status==='pendente').length;
+  const dup = impVendas.length - novos.length;
+  st.textContent = impVendas.length+' linhas lidas · '+novos.length+' novas (recebido '+BRL(rec)+' + '+pen+' a receber)' +
+    (dup ? '\n'+dup+' já existem e serão ignoradas.' : '');
+  document.getElementById('impPreview').innerHTML = novos.slice(0,12).map(v=>
+    '<div class="imp-item"><b>'+esc(v.comprador||'—')+'</b> — '+fmtData(v.data)+' · '+fmtQtd(v.quantidade,v.unidade)+' × '+BRL(v.preco)+' = <b>'+BRL(v.total)+'</b> ('+(v.status==='recebido'?'recebido':'a receber')+')' +
+    '<small>'+esc(v.cultura)+'</small></div>').join('') +
+    (novos.length > 12 ? '<div class="imp-item">…e mais '+(novos.length-12)+'.</div>' : '');
+  document.getElementById('impSaveBar').style.display = novos.length ? 'flex' : 'none';
+}
+async function salvarImportados(){
+  const novos = impVendas.filter(v=>!v.dupe);
+  if(!novos.length) return;
+  const btn = document.querySelector('#impSaveBar .btn-save');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+  let n = 0;
+  for(const v of novos){
+    try{
+      const r = await apiPost({tipo:'vendas', action:'add', data:{
+        data:v.data, comprador:v.comprador, cultura:v.cultura, quantidade:v.quantidade,
+        unidade:v.unidade, qtdPaga:v.qtdPaga, preco:v.preco, total:v.total, status:v.status, obs:v.obs}});
+      if(r.ok) n++;
+      document.getElementById('impStatus').textContent = 'Salvando... '+n+' de '+novos.length+'.';
+    }catch(e){}
+  }
+  btn.disabled = false; btn.textContent = 'Salvar tudo';
+  document.getElementById('impStatus').textContent = 'Pronto! '+n+' vendas importadas.';
+  document.getElementById('dlgImp').close();
+  carregar();
+}
+carregar();
+</script>
+<script src="sidebar.js"></script>
+</body>
+</html>

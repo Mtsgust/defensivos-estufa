@@ -1,5 +1,5 @@
 /* Barra lateral compartilhada. A página diz quem está ativo com
-   <body data-page="nutricao"> (painel, pulverizacoes, nutricao, estoque, bulario, inicio). */
+   <body data-page="nutricao"> (painel, pulverizacoes, nutricao, estoque, colheita, vendas, bulario, inicio). */
 (function(){
   var S = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"';
   var items = [
@@ -13,6 +13,8 @@
       '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
     ['colheita.html', 'Colheita', 'colheita',
       '<path d="M3 21h18"/><path d="M6 21v-9M12 21V5M18 21v-12"/>'],
+    ['vendas.html', 'Vendas', 'vendas',
+      '<path d="M12 3v18M5 8l7-5 7 5M5 8c0 5 3 9 7 9s7-4 7-9"/>'],
     ['bulario.html', 'Bulário', 'bulario',
       '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>']
   ];
@@ -22,6 +24,8 @@
     page = f.indexOf('pulv') === 0 ? 'pulverizacoes'
          : f.indexOf('nutr') === 0 ? 'nutricao'
          : f.indexOf('esto') === 0 ? 'estoque'
+         : f.indexOf('colh') === 0 ? 'colheita'
+         : f.indexOf('vend') === 0 ? 'vendas'
          : f.indexOf('bul') === 0 ? 'bulario'
          : f.indexOf('inic') === 0 ? 'inicio' : 'painel';
   }
