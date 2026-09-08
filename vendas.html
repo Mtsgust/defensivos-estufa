@@ -22,13 +22,15 @@
   .filters input{flex:1; padding:10px 12px; border-radius:9px; border:none; font-size:14px; background:rgba(255,255,255,.12); color:#fff;}
   .filters input::placeholder{color:#CFE0D3;}
   main{padding:16px 20px;}
-  .res{display:flex; gap:8px; margin-bottom:12px;}
+  .res{display:flex; gap:8px; margin-bottom:8px;}
   .ritem{flex:1; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 6px; text-align:center;}
   .ritem span{font-size:11px; color:#8A968A; display:block;}
-  .ritem b{font-size:15px;}
+  .ritem b{font-size:14px;}
   .ritem.ok b{color:var(--feito);} .ritem.no b{color:var(--danger);}
+  .res2{font-size:12px; color:#54614F; text-align:center; margin:0 0 12px;}
+  .res2 b{color:var(--ink);}
   .empty{text-align:center; color:#6C7A67; font-size:14px; margin-top:40px;}
-  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:10px;}
+  .item{background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px;}
   .item.recebido{border-color:#9CCBAC; background:#FAFDFB;}
   .item.pendente{border-color:#E08A7A; background:#FFF9F7;}
   .item-top{display:flex; justify-content:space-between; align-items:center; gap:10px;}
@@ -36,14 +38,14 @@
   .alert{font-size:11px; padding:3px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
   .alert.ok{background:#DCEFE3; color:var(--feito);}
   .alert.zero{background:#F7DAD2; color:var(--danger);}
-  .item h3{margin:8px 0 2px; font-size:15px; font-weight:600;}
-  .total{font-size:22px; font-weight:700; margin:4px 0 0;}
+  .item h3{margin:6px 0 1px; font-size:14px; font-weight:600;}
+  .total{font-size:18px; font-weight:700; margin:2px 0 0;}
   .total small{font-size:13px; font-weight:500; color:#54614F;}
   .item.recebido .total{color:var(--feito);}
   .item.pendente .total{color:var(--danger);}
-  .meta{font-size:12px; color:#8A968A; margin-top:4px;}
-  .actions{display:flex; gap:8px; margin-top:10px;}
-  .actions button{flex:1; border-radius:8px; padding:9px 0; font-size:13px; font-weight:600; cursor:pointer;}
+  .meta{font-size:11.5px; color:#8A968A; margin-top:3px;}
+  .actions{display:flex; gap:8px; margin-top:8px;}
+  .actions button{flex:1; border-radius:8px; padding:7px 0; font-size:12.5px; font-weight:600; cursor:pointer;}
   .btn-in{background:var(--feito); color:#fff; border:none;}
   .btn-out{background:transparent; color:var(--pend); border:1px solid var(--pend) !important;}
   .btn-edit{background:transparent; color:#8A968A; border:1px solid var(--line) !important; flex:0 0 44px !important;}
@@ -92,6 +94,7 @@
     <div class="ritem no"><span>A receber</span><b id="tPen">—</b></div>
     <div class="ritem"><span>Total geral</span><b id="tTot">—</b></div>
   </div>
+  <div class="res2" id="resQtd"></div>
   <div id="list"><div class="loading">Carregando…</div></div>
 </main>
 
@@ -194,11 +197,20 @@ async function carregar(){
   }
 }
 function totais(){
-  let rec = 0, pen = 0;
-  vendas.forEach(v=>{ if(String(v.status)==='recebido') rec += num(v.total); else pen += num(v.total); });
+  let rec = 0, pen = 0, kg = 0, cx = 0, kgP = 0, cxP = 0;
+  vendas.forEach(v=>{
+    if(String(v.status)==='recebido') rec += num(v.total); else pen += num(v.total);
+    const qp = num(v.qtdPaga) > 0 ? num(v.qtdPaga) : num(v.quantidade);
+    const isCX = String(v.unidade).toUpperCase()==='CX';
+    if(isCX) cx += qp; else kg += qp;
+    if(String(v.status)!=='recebido'){ if(isCX) cxP += qp; else kgP += qp; }
+  });
   document.getElementById('tRec').textContent = BRL(rec);
   document.getElementById('tPen').textContent = BRL(pen);
   document.getElementById('tTot').textContent = BRL(rec+pen);
+  const fq = n => (Math.round(n*100)/100).toString().replace('.',',');
+  document.getElementById('resQtd').innerHTML =
+    'Vendido: <b>'+fq(kg)+' KG + '+fq(cx)+' CX</b> · Falta receber: <b>'+fq(kgP)+' KG + '+fq(cxP)+' CX</b>';
 }
 function render(){
   totais();
@@ -338,7 +350,7 @@ function parseVendasExcel(texto, ano, cultura, unPadrao, compPadrao){
     const nome = di > 0 ? cells.slice(0,di).join(' ').trim() : (compPadrao||'');
     const after = cells.slice(di+1);
     const qtds = [];
-    after.forEach(c=>{ const q = parseQtdV(c, unPadrao); if(q) qtds.push(q); });
+    after.forEach(c=>{ if(/R\$/.test(c)) return; const q = parseQtdV(c, unPadrao); if(q) qtds.push(q); });
     if(!qtds.length) return;
     let preco = 0;
     for(const c of after){ if(/R\$/.test(c)){ preco = parseNumBR(c); break; } }
