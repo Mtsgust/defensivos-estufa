@@ -83,6 +83,30 @@
   .estufa-filter label{font-size:12px; color:#CFE0D3;}
   .estufa-filter select{flex:1; padding:8px 10px; border-radius:8px; border:none; font-size:13px; background:rgba(255,255,255,.12); color:#fff;}
   .estufa-filter select option{color:#000;}
+  /* Alternador Lista / Semana + calendário semanal */
+  .view-toggle{display:flex; gap:8px; margin:10px 20px 0;}
+  .view-toggle .vt{flex:1; padding:8px 0; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;
+    background:rgba(255,255,255,.07); border:1px solid #24402F; color:#9DB8A4;}
+  .view-toggle .vt.active{background:linear-gradient(135deg,#3D7A5C,#2A5A41); color:#fff; border-color:transparent;}
+  .cal-nav{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .cal-nav b{flex:1; text-align:center; font-size:14px;}
+  .cal-nav button{background:#152A1F; border:1px solid #24402F; color:#E9F2EA; border-radius:10px;
+    padding:7px 14px; font-size:14px; font-weight:700; cursor:pointer;}
+  .cal-grid{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(160px,1fr); gap:8px;
+    overflow-x:auto; padding-bottom:60px;}
+  .cal-col{background:rgba(255,255,255,.02); border:1px solid #24402F; border-radius:14px; padding:8px; min-height:120px;}
+  .cal-col.today{border-color:#3D7A5C; box-shadow:0 0 0 1px #3D7A5C;}
+  .cal-day{font-size:12px; color:#9DB8A4; margin-bottom:8px; text-transform:capitalize;}
+  .cal-day b{color:#E9F2EA; font-size:13px;}
+  .cal-block{border-radius:12px; padding:8px; margin-bottom:8px; font-size:12px; border:1px solid;}
+  .cal-block.pendente{background:rgba(217,164,65,.12); border-color:#6b551f;}
+  .cal-block.feito{background:rgba(143,209,154,.10); border-color:#2c5a3c;}
+  .cal-block.atrasado{background:rgba(224,120,95,.12); border-color:#7a3a2c;}
+  .cal-est{font-weight:800; font-size:12px; margin-bottom:4px;}
+  .cal-task{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:3px 0;}
+  .cal-task button{flex:0 0 26px; height:26px; border-radius:8px; border:1px solid #3D7A5C;
+    background:transparent; color:#8FD19A; font-weight:800; cursor:pointer;}
+  .cal-empty{color:#4a5f50; text-align:center; font-size:12px; padding:10px 0;}
 </style>
 <link rel="stylesheet" href="sidebar.css">
 <link rel="stylesheet" href="theme.css">
@@ -108,6 +132,10 @@
       <option value="6">Estufa 6</option>
       <option value="7">Estufa 7</option>
     </select>
+  </div>
+  <div class="view-toggle">
+    <button class="vt active" data-v="lista">☰ Lista</button>
+    <button class="vt" data-v="semana">📅 Semana</button>
   </div>
 </header>
 <main id="list"><div class="loading">Carregando…</div></main>
@@ -282,6 +310,7 @@ function itemCard(d){
 
 function render(){
   const list = document.getElementById('list');
+  if(vista === 'semana'){ renderSemana(); return; }
   let itens = dados;
   if(filtro !== 'todas') itens = dados.filter(d => d.status === filtro);
   if(filtroEstufa !== 'todas') itens = itens.filter(d => String(d.estufa||'') === filtroEstufa);
@@ -320,6 +349,85 @@ function fmtData(v){
   if(isNaN(dt)) return v;
   return dt.toLocaleDateString('pt-BR');
 }
+
+// ===== Visão Semana: calendário seg–dom, tarefas agrupadas por dia + estufa =====
+let vista = 'lista';
+let semBase = null; // ISO da segunda-feira exibida (null = semana atual)
+const DIAS_PT = ['dom','seg','ter','qua','qui','sex','sáb'];
+function isoLocal(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function isoD(v){
+  if(!v) return '';
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[1]+'-'+m[2]+'-'+m[3] : '';
+}
+function somaDias(iso, n){
+  const d = new Date(iso+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return isoLocal(d);
+}
+function segSegunda(hoje){
+  const d = new Date(hoje+'T00:00:00');
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return isoLocal(d);
+}
+function mudaSemana(n){
+  const base = semBase || segSegunda(isoLocal(new Date()));
+  semBase = n === 0 ? null : somaDias(base, n);
+  render();
+}
+function blocoEstufa(e, arr){
+  const cls = arr.some(isAtrasado) ? 'atrasado' : (arr.some(d=>d.status!=='feito') ? 'pendente' : 'feito');
+  return `<div class="cal-block ${cls}"><div class="cal-est">Estufa ${escapeHtml(e)}</div>` +
+    arr.map(d=>`<div class="cal-task"><span>${escapeHtml(d.produto||'(insumo)')}${d.dose?' · '+escapeHtml(d.dose):''}</span>` +
+      (d.status!=='feito' ? `<button onclick="marcarFeito('${d.id}')" title="Marcar feito">✓</button>` : '') + `</div>`).join('') +
+    `</div>`;
+}
+function renderSemana(){
+  const list = document.getElementById('list');
+  const hoje = isoLocal(new Date());
+  const seg = semBase || segSegunda(hoje);
+  const dias = [];
+  for(let i=0;i<7;i++) dias.push(somaDias(seg, i));
+  let itens = dados;
+  if(filtro !== 'todas') itens = itens.filter(d => d.status === filtro);
+  if(filtroEstufa !== 'todas') itens = itens.filter(d => String(d.estufa||'') === filtroEstufa);
+  const porDia = {}, semData = [];
+  itens.forEach(d=>{
+    const dt = d.status==='feito' ? (isoD(d.dataExecucao)||isoD(d.dataPrevista)) : isoD(d.dataPrevista);
+    if(!dt){ semData.push(d); return; }
+    if(dt < dias[0] || dt > dias[6]) return;
+    (porDia[dt] = porDia[dt] || []).push(d);
+  });
+  let html = `<div class="cal-nav"><button onclick="mudaSemana(-7)">‹</button>` +
+    `<b>${dias[0].slice(8)}/${dias[0].slice(5,7)} – ${dias[6].slice(8)}/${dias[6].slice(5,7)}</b>` +
+    `<button onclick="mudaSemana(7)">›</button><button onclick="mudaSemana(0)">Hoje</button></div><div class="cal-grid">`;
+  dias.forEach(dt=>{
+    const dd = new Date(dt+'T00:00:00');
+    html += `<div class="cal-col${dt===hoje?' today':''}"><div class="cal-day">${DIAS_PT[dd.getDay()]} <b>${dt.slice(8)}/${dt.slice(5,7)}</b></div>`;
+    const doDia = porDia[dt] || [];
+    const porE = {};
+    doDia.forEach(d=>{ const e = String(d.estufa||'?'); (porE[e] = porE[e] || []).push(d); });
+    const es = Object.keys(porE).sort();
+    html += es.length ? es.map(e=>blocoEstufa(e, porE[e])).join('') : `<div class="cal-empty">—</div>`;
+    html += `</div>`;
+  });
+  if(semData.length){
+    const porE = {};
+    semData.forEach(d=>{ const e = String(d.estufa||'?'); (porE[e] = porE[e] || []).push(d); });
+    html += `<div class="cal-col"><div class="cal-day">Sem data</div>` +
+      Object.keys(porE).sort().map(e=>blocoEstufa(e, porE[e])).join('') + `</div>`;
+  }
+  html += `</div>`;
+  list.innerHTML = html;
+}
+document.querySelectorAll('.vt').forEach(t=>t.addEventListener('click', ()=>{
+  document.querySelectorAll('.vt').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  vista = t.dataset.v;
+  render();
+}));
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
