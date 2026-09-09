@@ -133,10 +133,6 @@
       <option value="7">Estufa 7</option>
     </select>
   </div>
-  <div class="view-toggle">
-    <button class="vt active" data-v="lista">☰ Lista</button>
-    <button class="vt" data-v="semana">📅 Semana</button>
-  </div>
 </header>
 <main id="list"><div class="loading">Carregando…</div></main>
 
@@ -309,39 +305,7 @@ function itemCard(d){
 }
 
 function render(){
-  const list = document.getElementById('list');
-  if(vista === 'semana'){ renderSemana(); return; }
-  let itens = dados;
-  if(filtro !== 'todas') itens = dados.filter(d => d.status === filtro);
-  if(filtroEstufa !== 'todas') itens = itens.filter(d => String(d.estufa||'') === filtroEstufa);
-  if(itens.length === 0){
-    list.innerHTML = '<div class="empty">Nada por aqui.</div>';
-    return;
-  }
-
-  if(filtro === 'feito'){
-    itens = itens.slice().sort((a,b) => new Date(b.dataExecucao||b.dataCriacao) - new Date(a.dataExecucao||a.dataCriacao));
-    list.innerHTML = itens.map(itemCard).join('');
-    return;
-  }
-
-  itens = itens.slice().sort((a,b) => {
-    if(!a.dataPrevista) return 1;
-    if(!b.dataPrevista) return -1;
-    return new Date(a.dataPrevista) - new Date(b.dataPrevista);
-  });
-  let html = '';
-  let grupoAtual = null;
-  itens.forEach(d => {
-    const chave = d.dataPrevista || 'sem-data';
-    if(chave !== grupoAtual){
-      grupoAtual = chave;
-      const titulo = d.dataPrevista ? fmtData(d.dataPrevista) : 'Sem data definida';
-      html += `<div class="group-header">${titulo}</div>`;
-    }
-    html += itemCard(d);
-  });
-  list.innerHTML = html;
+  renderSemana();
 }
 
 function fmtData(v){
@@ -351,7 +315,6 @@ function fmtData(v){
 }
 
 // ===== Visão Semana: calendário seg–dom, tarefas agrupadas por dia + estufa =====
-let vista = 'lista';
 let semBase = null; // ISO da segunda-feira exibida (null = semana atual)
 const DIAS_PT = ['dom','seg','ter','qua','qui','sex','sáb'];
 function isoLocal(d){
@@ -422,12 +385,6 @@ function renderSemana(){
   html += `</div>`;
   list.innerHTML = html;
 }
-document.querySelectorAll('.vt').forEach(t=>t.addEventListener('click', ()=>{
-  document.querySelectorAll('.vt').forEach(x=>x.classList.remove('active'));
-  t.classList.add('active');
-  vista = t.dataset.v;
-  render();
-}));
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
